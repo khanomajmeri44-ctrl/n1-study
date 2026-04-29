@@ -48,11 +48,12 @@ const ALL_DATA = raw.map(d => ({
     id: d[0], zh: d[1], ja: d[2], exJa: d[3], exZh: d[4], conn: d[5]
 }));
 
-// 每10个语法分为一个章节
+// 每10个语法分为一个章节，最后两个单元合并为第20单元（191-205）
 const CHAPTER_SIZE = 10;
 const allChapters = [];
-for (let i = 0; i < ALL_DATA.length; i += CHAPTER_SIZE) {
-    const end = Math.min(i + CHAPTER_SIZE, ALL_DATA.length);
+const mergeFrom = ALL_DATA.length - 15; // 最后15条归入第20单元
+for (let i = 0; i < mergeFrom; i += CHAPTER_SIZE) {
+    const end = i + CHAPTER_SIZE;
     const chNum = Math.floor(i / CHAPTER_SIZE) + 1;
     allChapters.push({
         name: `第${chNum}单元`,
@@ -61,6 +62,13 @@ for (let i = 0; i < ALL_DATA.length; i += CHAPTER_SIZE) {
         items: ALL_DATA.slice(i, end)
     });
 }
+// 最后一个单元：合并原第20、21单元（191-205，共15条）
+allChapters.push({
+    name: `第${allChapters.length + 1}单元`,
+    start: mergeFrom + 1,
+    end: ALL_DATA.length,
+    items: ALL_DATA.slice(mergeFrom)
+});
 
 const renderRubyText = (text) => {
     if (!text) return null;
