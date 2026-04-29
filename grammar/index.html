@@ -24,7 +24,6 @@ ruby{ruby-align:center}rt{font-size:0.55em;color:#bfdbfe;transform:translateY(-2
 </head>
 <body class="text-gray-800 h-screen overflow-hidden flex selection:bg-indigo-200">
 <div id="root" class="h-full w-full flex">
-    <!-- 骨架屏 -->
     <div id="skeleton" class="flex h-full w-full">
         <div class="hidden md:flex w-64 bg-white border-r border-gray-200 flex-shrink-0 flex-col">
             <div class="p-4 border-b border-gray-100 animate-pulse"><div class="h-5 bg-gray-200 rounded w-28 mb-2"></div><div class="h-3 bg-gray-100 rounded w-20"></div></div>
@@ -37,74 +36,58 @@ ruby{ruby-align:center}rt{font-size:0.55em;color:#bfdbfe;transform:translateY(-2
     </div>
 </div>
 <script src="grammar.js"></script>
-<script type="text/babel" data-type="module" data-presets="react">
+<script>
+function renderRubyText(text) {
+    if (!text) return null;
+    var parts = text.split(/(\{[^|]+\|[^}]+\})/g);
+    return parts.map(function(part, index) {
+        var match = part.match(/^\{([^|]+)\|([^}]+)\}$/);
+        if (match) {
+            return React.createElement('ruby', {key:index}, match[1], React.createElement('rt', null, match[2]));
+        }
+        return React.createElement('span', {key:index}, part);
+    });
+}
+</script>
+<script type="text/babel" data-presets="react">
 const { useState, useEffect, useCallback, useMemo, useRef } = React;
 
 const STORAGE_KEY = 'n1_grammar_mastered_ids';
 const CHAPTER_KEY = 'n1_grammar_selected_chapters';
+const CH_SIZE = 10;
 
-const raw = RAW_GRAMMAR_DATA;
-const ALL_DATA = raw.map(d => ({
-    id: d[0], zh: d[1], ja: d[2], exJa: d[3], exZh: d[4], conn: d[5]
-}));
+const ALL_DATA = RAW_GRAMMAR_DATA.map(function(d){ return {id:d[0],zh:d[1],ja:d[2],exJa:d[3],exZh:d[4],conn:d[5]}; });
 
-// 每10个语法分为一个章节，最后两个单元合并为第20单元（191-205）
-const CHAPTER_SIZE = 10;
-const allChapters = [];
-const mergeFrom = ALL_DATA.length - 15; // 最后15条归入第20单元
-for (let i = 0; i < mergeFrom; i += CHAPTER_SIZE) {
-    const end = i + CHAPTER_SIZE;
-    const chNum = Math.floor(i / CHAPTER_SIZE) + 1;
-    allChapters.push({
-        name: `第${chNum}单元`,
-        start: i + 1,
-        end: end,
-        items: ALL_DATA.slice(i, end)
-    });
+// 每10条一个单元，最后两个单元合并
+var chapters = [];
+var mergeFrom = ALL_DATA.length - 15;
+for (var i = 0; i < mergeFrom; i += CH_SIZE) {
+    var end = i + CH_SIZE;
+    chapters.push({name:'第'+(chapters.length+1)+'单元', items: ALL_DATA.slice(i, end)});
 }
-// 最后一个单元：合并原第20、21单元（191-205，共15条）
-allChapters.push({
-    name: `第${allChapters.length + 1}单元`,
-    start: mergeFrom + 1,
-    end: ALL_DATA.length,
-    items: ALL_DATA.slice(mergeFrom)
-});
+chapters.push({name:'第'+(chapters.length+1)+'单元', items: ALL_DATA.slice(mergeFrom)});
 
-const renderRubyText = (text) => {
-    if (!text) return null;
-    const parts = text.split(/(\{[^|]+\|[^}]+\})/g);
-    return parts.map((part, index) => {
-        const match = part.match(/^\{([^|]+)\|([^}]+)\}$/);
-        if (match) {
-            return <ruby key={index}>{match[1]}<rt>{match[2]}</rt></ruby>;
-        }
-        return <span key={index}>{part}</span>;
-    });
-};
+var chapterNames = chapters.map(function(c){ return c.name; });
 
-const loadMasteredIds = () => {
-    try { const data = localStorage.getItem(STORAGE_KEY); return data ? new Set(JSON.parse(data)) : new Set(); } catch { return new Set(); }
+var loadMasteredIds = function() {
+    try { var d = localStorage.getItem(STORAGE_KEY); return d ? new Set(JSON.parse(d)) : new Set(); } catch(e) { return new Set(); }
 };
-const saveMasteredIds = (ids) => { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(Array.from(ids))); } catch (e) {} };
+var saveMasteredIds = function(ids) { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(Array.from(ids))); } catch(e) {} };
 
-const loadSelectedChapters = () => {
-    try {
-        const data = localStorage.getItem(CHAPTER_KEY);
-        if (!data) return null;
-        return JSON.parse(data);
-    } catch { return null; }
+var loadSelectedChapters = function() {
+    try { var d = localStorage.getItem(CHAPTER_KEY); return d ? JSON.parse(d) : null; } catch(e) { return null; }
 };
-const saveSelectedChapters = (chapters) => {
-    try { localStorage.setItem(CHAPTER_KEY, JSON.stringify(chapters)); } catch (e) {}
-};
+var saveSelectedChapters = function(chs) { try { localStorage.setItem(CHAPTER_KEY, JSON.stringify(chs)); } catch(e) {} };
 
-const App = () => {
-    const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;
+function getChapterIdx(id) { return Math.floor((id - 1) / CH_SIZE); }
+
+const App = function() {
+    var isMobile = window.innerWidth < 640;
+    var _savedCh = loadSelectedChapters();
+    var _initCh = _savedCh || chapterNames;
+
     const [sidebarOpen, setSidebarOpen] = useState(!isMobile);
-    const [selectedChapters, setSelectedChapters] = useState(() => {
-        const saved = loadSelectedChapters();
-        return saved || allChapters.map(c => c.name);
-    });
+    const [selectedChapters, setSelectedChapters] = useState(function(){ return _initCh; });
     const [currentIndex, setCurrentIndex] = useState(0);
     const [isFlipped, setIsFlipped] = useState(false);
     const [masteredIds, setMasteredIds] = useState(loadMasteredIds);
@@ -113,415 +96,440 @@ const App = () => {
     const [toast, setToast] = useState(null);
     const [searchOpen, setSearchOpen] = useState(false);
     const [shuffleSeed, setShuffleSeed] = useState(0);
-    const [flipMode, setFlipMode] = useState(() => {
-        try { return localStorage.getItem('n1_flip_mode') || 'ja_zh'; } catch { return 'ja_zh'; }
+    const [flipMode, setFlipMode] = useState(function() {
+        try { return localStorage.getItem('n1_grammar_flip_mode') || 'ja_zh'; } catch(e) { return 'ja_zh'; }
     });
-    const searchInputRef = useRef(null);
+    var searchInputRef = useRef(null);
 
-    const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(null), 2000); };
+    var showToast = function(msg) { setToast(msg); setTimeout(function(){ setToast(null); }, 2000); };
 
-    const activeChapters = useMemo(() => {
+    var isAllSelected = selectedChapters.length === chapters.length;
+
+    var activeChapters = useMemo(function() {
         if (selectedChapters.length === 0) return [];
-        if (selectedChapters.length === allChapters.length) return allChapters.map(c => c.name);
+        if (selectedChapters.length === chapters.length) return chapterNames;
         return selectedChapters;
     }, [selectedChapters]);
 
-    const isAllSelected = selectedChapters.length === allChapters.length;
-
-    const toggleChapter = (ch) => {
-        setSelectedChapters(prev => {
-            const newSelected = prev.includes(ch) ? prev.filter(c => c !== ch) : [...prev, ch];
-            saveSelectedChapters(newSelected);
-            return newSelected;
+    var toggleChapter = function(ch) {
+        setSelectedChapters(function(prev) {
+            var next = prev.indexOf(ch) >= 0 ? prev.filter(function(c){ return c !== ch; }) : prev.concat([ch]);
+            saveSelectedChapters(next);
+            return next;
         });
         setCurrentIndex(0); setIsFlipped(false);
     };
 
-    const toggleAll = () => {
+    var toggleAll = function() {
         if (isAllSelected) { setSelectedChapters([]); saveSelectedChapters([]); }
-        else { setSelectedChapters(allChapters.map(c => c.name)); saveSelectedChapters(allChapters.map(c => c.name)); }
+        else { setSelectedChapters(chapterNames.slice()); saveSelectedChapters(chapterNames.slice()); }
         setCurrentIndex(0); setIsFlipped(false);
     };
 
-    const allCards = useMemo(() => {
-        let cards = ALL_DATA;
-        if (activeChapters.length > 0 && activeChapters.length < allChapters.length) {
-            cards = cards.filter(c => {
-                const chIdx = Math.floor((c.id - 1) / CHAPTER_SIZE);
-                return activeChapters.includes(allChapters[chIdx].name);
+    var allCards = useMemo(function() {
+        var cards = ALL_DATA;
+        if (activeChapters.length > 0 && activeChapters.length < chapters.length) {
+            cards = cards.filter(function(c) {
+                var ch = chapters[getChapterIdx(c.id)];
+                return ch && activeChapters.indexOf(ch.name) >= 0;
             });
         }
         return cards;
     }, [activeChapters]);
 
-    const filteredCards = useMemo(() => {
-        let cards = allCards;
+    var filteredCards = useMemo(function() {
+        var cards = allCards;
         if (filterMode === 'learning') {
-            cards = cards.filter(c => !masteredIds.has(c.id));
+            cards = cards.filter(function(c){ return !masteredIds.has(c.id); });
         }
         if (searchQuery) {
-            const q = searchQuery.toLowerCase();
-            cards = cards.filter(c => 
-                c.zh.includes(q) || c.ja.includes(q) || c.exJa.includes(q) || c.conn.includes(q)
-            );
+            var q = searchQuery.toLowerCase();
+            cards = cards.filter(function(c){ return c.zh.indexOf(q)>=0 || c.ja.indexOf(q)>=0 || c.exJa.indexOf(q)>=0 || c.conn.indexOf(q)>=0; });
         }
         if (shuffleSeed > 0) {
-            cards = [...cards];
-            for (let i = cards.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [cards[i], cards[j]] = [cards[j], cards[i]];
+            cards = cards.slice();
+            for (var i = cards.length - 1; i > 0; i--) {
+                var j = Math.floor(Math.random() * (i + 1));
+                var tmp = cards[i]; cards[i] = cards[j]; cards[j] = tmp;
             }
         }
         return cards;
     }, [allCards, filterMode, masteredIds, searchQuery, shuffleSeed]);
 
-    const prevFilterKey = useRef(JSON.stringify({ ch: [...selectedChapters].sort(), mode: filterMode, q: searchQuery }));
-    useEffect(() => {
-        const key = JSON.stringify({ ch: [...selectedChapters].sort(), mode: filterMode, q: searchQuery });
+    var prevFilterKey = useRef('');
+    useEffect(function() {
+        var key = selectedChapters.slice().sort().join(',') + '|' + filterMode + '|' + searchQuery;
         if (key !== prevFilterKey.current) { setShuffleSeed(0); }
         prevFilterKey.current = key;
     }, [selectedChapters, filterMode, searchQuery]);
 
-    useEffect(() => {
+    useEffect(function() {
         if (filteredCards.length === 0) { setCurrentIndex(0); return; }
         if (currentIndex >= filteredCards.length) { setCurrentIndex(Math.max(0, filteredCards.length - 1)); setIsFlipped(false); }
     }, [filteredCards.length]);
 
-    const handleFlip = useCallback(() => setIsFlipped(p => !p), []);
+    var handleFlip = useCallback(function(){ setIsFlipped(function(p){ return !p; }); }, []);
 
-    const toggleMasterStatus = useCallback(() => {
+    var toggleMasterStatus = useCallback(function() {
         if (filteredCards.length === 0) return;
-        const card = filteredCards[currentIndex];
+        var card = filteredCards[currentIndex];
         if (!card) return;
-        setMasteredIds(prev => {
-            const s = new Set(prev);
-            s.has(card.id) ? s.delete(card.id) : s.add(card.id);
+        setMasteredIds(function(prev) {
+            var s = new Set(prev);
+            if (s.has(card.id)) s.delete(card.id); else s.add(card.id);
             saveMasteredIds(s);
             return s;
         });
     }, [filteredCards, currentIndex]);
 
-    const goPrev = useCallback(() => {
-        if (currentIndex > 0) { setIsFlipped(false); setTimeout(() => setCurrentIndex(p => p - 1), 150); }
+    var goPrev = useCallback(function() {
+        if (currentIndex > 0) { setIsFlipped(false); setTimeout(function(){ setCurrentIndex(function(p){ return p-1; }); }, 150); }
     }, [currentIndex]);
 
-    const goNext = useCallback(() => {
-        if (currentIndex < filteredCards.length - 1) { setIsFlipped(false); setTimeout(() => setCurrentIndex(p => p + 1), 150); }
+    var goNext = useCallback(function() {
+        if (currentIndex < filteredCards.length - 1) { setIsFlipped(false); setTimeout(function(){ setCurrentIndex(function(p){ return p+1; }); }, 150); }
     }, [currentIndex, filteredCards.length]);
 
-    const shuffleCards = useCallback(() => {
-        setShuffleSeed(p => p + 1);
-        setCurrentIndex(0);
-        setIsFlipped(false);
-        showToast('已随机打乱 ✓');
+    var shuffleCards = useCallback(function() {
+        setShuffleSeed(function(p){ return p+1; }); setCurrentIndex(0); setIsFlipped(false); showToast('已随机打乱 ✓');
     }, []);
 
-    useEffect(() => {
-        try { localStorage.setItem('n1_flip_mode', flipMode); } catch (e) {}
+    useEffect(function() {
+        try { localStorage.setItem('n1_grammar_flip_mode', flipMode); } catch(e) {}
     }, [flipMode]);
 
-    const actualFlipMode = useMemo(() => {
+    var actualFlipMode = useMemo(function() {
         if (flipMode !== 'random') return flipMode;
         if (filteredCards.length === 0) return 'ja_zh';
-        const card = filteredCards[currentIndex];
+        var card = filteredCards[currentIndex];
         if (!card) return 'ja_zh';
-        const modes = ['ja_zh', 'zh_ja', 'conn_ex'];
-        const hash = String(card.id).split('').reduce((a, c) => a + c.charCodeAt(0), 0);
-        return modes[hash % 3];
+        var modes = ['ja_zh', 'zh_ja', 'conn_ex'];
+        return modes[Math.abs(card.id) % 3];
     }, [flipMode, filteredCards, currentIndex]);
 
-    const resetProgress = useCallback(() => {
-        if (window.confirm("确定要清空所有已掌握记录吗？")) {
-            const empty = new Set(); setMasteredIds(empty); saveMasteredIds(empty); setCurrentIndex(0); setIsFlipped(false); showToast('进度已清空');
+    var resetProgress = useCallback(function() {
+        if (confirm("确定要清空所有已掌握记录吗？")) {
+            var empty = new Set(); setMasteredIds(empty); saveMasteredIds(empty);
+            setCurrentIndex(0); setIsFlipped(false); showToast('进度已清空');
         }
     }, []);
 
-    const stateRef = useRef({ filteredCards, currentIndex });
-    stateRef.current = { filteredCards, currentIndex };
+    var stateRef = useRef({ filteredCards: filteredCards, currentIndex: currentIndex });
+    stateRef.current = { filteredCards: filteredCards, currentIndex: currentIndex };
 
-    useEffect(() => {
-        const handleKeyDown = (e) => {
-            const { filteredCards: fc, currentIndex: ci } = stateRef.current;
-            if (fc.length === 0) return;
-            if (e.code === 'Space') { e.preventDefault(); setIsFlipped(p => !p); }
-            else if (e.code === 'ArrowLeft') { if (ci > 0) { setIsFlipped(false); setTimeout(() => setCurrentIndex(p => p - 1), 150); } }
-            else if (e.code === 'ArrowRight') { if (ci < fc.length - 1) { setIsFlipped(false); setTimeout(() => setCurrentIndex(p => p + 1), 150); } }
+    useEffect(function() {
+        var onKey = function(e) {
+            var st = stateRef.current;
+            if (st.filteredCards.length === 0) return;
+            if (e.code === 'Space') { e.preventDefault(); setIsFlipped(function(p){ return !p; }); }
+            else if (e.code === 'ArrowLeft') { if (st.currentIndex > 0) { setIsFlipped(false); setTimeout(function(){ setCurrentIndex(function(p){ return p-1; }); }, 150); } }
+            else if (e.code === 'ArrowRight') { if (st.currentIndex < st.filteredCards.length - 1) { setIsFlipped(false); setTimeout(function(){ setCurrentIndex(function(p){ return p+1; }); }, 150); } }
             else if (e.code === 'KeyM') toggleMasterStatus();
         };
-        window.addEventListener('keydown', handleKeyDown);
-        return () => window.removeEventListener('keydown', handleKeyDown);
+        window.addEventListener('keydown', onKey);
+        return function(){ window.removeEventListener('keydown', onKey); };
     }, [toggleMasterStatus]);
 
-    useEffect(() => {
-        const sk = document.getElementById('skeleton');
+    useEffect(function() {
+        var sk = document.getElementById('skeleton');
         if (sk) sk.remove();
     }, []);
 
-    useEffect(() => {
-        const t = setTimeout(() => { if (typeof lucide !== 'undefined' && lucide.createIcons) lucide.createIcons(); }, 200);
-        return () => clearTimeout(t);
+    useEffect(function() {
+        var t = setTimeout(function() { if (typeof lucide !== 'undefined' && lucide.createIcons) lucide.createIcons(); }, 200);
+        return function(){ clearTimeout(t); };
     }, [currentIndex, isFlipped, filterMode, filteredCards.length, sidebarOpen]);
 
-    const currentCard = filteredCards.length > 0 ? filteredCards[currentIndex] : null;
-    const isCurrentMastered = currentCard ? masteredIds.has(currentCard.id) : false;
-    
-    const getChapterName = (id) => {
-        const chIdx = Math.floor((id - 1) / CHAPTER_SIZE);
-        return allChapters[chIdx]?.name || '';
-    };
+    var currentCard = filteredCards.length > 0 ? filteredCards[currentIndex] : null;
+    var isCurrentMastered = currentCard ? masteredIds.has(currentCard.id) : false;
 
-    const cardFront = useMemo(() => {
+    var cardFront = useMemo(function() {
         if (!currentCard) return null;
-        const c = currentCard;
-        switch (actualFlipMode) {
-            case 'ja_zh':
-                return { label: '日文句型', content: c.ja, hint: '点击查看中文及接续' };
-            case 'zh_ja':
-                return { label: '中文含义', content: c.zh, hint: '点击查看日文句型' };
-            case 'conn_ex':
-                return { label: '接续规则', content: c.conn, hint: '点击查看例句用法' };
-            default:
-                return { label: 'N1 语法', content: c.ja, hint: '点击查看释义' };
-        }
+        var c = currentCard;
+        if (actualFlipMode === 'ja_zh') return { label: '日文句型', content: c.ja, hint: '点击查看中文及接续' };
+        if (actualFlipMode === 'zh_ja') return { label: '中文含义', content: c.zh, hint: '点击查看日文句型' };
+        if (actualFlipMode === 'conn_ex') return { label: '接续规则', content: c.conn, hint: '点击查看例句用法' };
+        return { label: 'N1 语法', content: c.ja, hint: '点击查看释义' };
     }, [currentCard, actualFlipMode]);
 
-    const cardBack = useMemo(() => {
+    var cardBack = useMemo(function() {
         if (!currentCard) return null;
-        const c = currentCard;
-        switch (actualFlipMode) {
-            case 'ja_zh':
-                return { zh: c.zh, ja: c.ja, conn: c.conn, exJa: c.exJa, exZh: c.exZh };
-            case 'zh_ja':
-                return { zh: null, ja: c.ja, conn: c.conn, exJa: c.exJa, exZh: c.exZh, extra: c.zh };
-            case 'conn_ex':
-                return { zh: c.zh, ja: c.ja, conn: null, exJa: c.exJa, exZh: c.exZh, extra: c.conn };
-            default:
-                return { zh: c.zh, ja: c.ja, conn: c.conn, exJa: c.exJa, exZh: c.exZh };
-        }
+        var c = currentCard;
+        if (actualFlipMode === 'ja_zh') return { zh: c.zh, ja: c.ja, conn: c.conn, exJa: c.exJa, exZh: c.exZh };
+        if (actualFlipMode === 'zh_ja') return { zh: null, ja: c.ja, conn: c.conn, exJa: c.exJa, exZh: c.exZh, extraTitle: '中文含义', extra: c.zh };
+        if (actualFlipMode === 'conn_ex') return { zh: c.zh, ja: c.ja, conn: null, exJa: c.exJa, exZh: c.exZh, extraTitle: '接续规则', extra: c.conn };
+        return { zh: c.zh, ja: c.ja, conn: c.conn, exJa: c.exJa, exZh: c.exZh };
     }, [currentCard, actualFlipMode]);
 
-    const masteredInFilter = allCards.filter(c => masteredIds.has(c.id)).length;
-    const totalInFilter = allCards.length;
-    const progressPercent = totalInFilter > 0 ? Math.round((masteredInFilter / totalInFilter) * 100) : 0;
+    var masteredInFilter = allCards.filter(function(c){ return masteredIds.has(c.id); }).length;
+    var totalInFilter = allCards.length;
+    var progressPercent = totalInFilter > 0 ? Math.round((masteredInFilter / totalInFilter) * 100) : 0;
 
-    const chapterStats = useMemo(() => {
-        return allChapters.map(ch => {
-            const total = ch.items.length;
-            const mastered = ch.items.filter(c => masteredIds.has(c.id)).length;
-            return { name: ch.name, total, mastered };
+    var chapterStats = useMemo(function() {
+        return chapters.map(function(ch) {
+            var total = ch.items.length;
+            var mastered = ch.items.filter(function(c){ return masteredIds.has(c.id); }).length;
+            return { name: ch.name, total: total, mastered: mastered };
         });
     }, [masteredIds]);
 
-    return (
-        <div className="flex h-full w-full">
-            {toast && <div className="fixed top-8 left-1/2 -translate-x-1/2 z-50 bg-gray-800 text-white px-4 py-2 rounded-full text-sm shadow-lg fade-in">{toast}</div>}
+    return React.createElement('div', { className: 'flex h-full w-full' },
+        toast ? React.createElement('div', { className: 'fixed top-8 left-1/2 -translate-x-1/2 z-50 bg-gray-800 text-white px-4 py-2 rounded-full text-sm shadow-lg fade-in' }, toast) : null,
 
-            {/* 移动端侧边栏遮罩 */}
-            {sidebarOpen && <div className="fixed inset-0 bg-black/30 z-30 md:hidden" onClick={() => setSidebarOpen(false)}></div>}
+        sidebarOpen ? React.createElement('div', { className: 'fixed inset-0 bg-black/30 z-30 md:hidden', onClick: function(){ setSidebarOpen(false); } }) : null,
 
-            {/* Sidebar */}
-            <div className={`
-                ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
-                md:translate-x-0 md:w-64 md:${sidebarOpen ? '' : 'w-0'}
-                fixed md:relative z-40 h-full w-72 bg-white border-r border-gray-200 flex-shrink-0 transition-transform duration-200 flex flex-col
-                ${!sidebarOpen ? 'md:overflow-hidden md:w-0' : ''}
-            `}>
-                <div className="p-4 border-b border-gray-100">
-                    <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-indigo-600"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
-                        N1语法特训
-                    </h2>
-                    <p className="text-xs text-gray-400 mt-1">共 {ALL_DATA.length} 条 · {allChapters.length} 单元</p>
-                </div>
+        React.createElement('div', { className: (sidebarOpen ? 'translate-x-0' : '-translate-x-full') + ' md:translate-x-0 md:w-64 fixed md:relative z-40 h-full w-72 bg-white border-r border-gray-200 flex-shrink-0 transition-transform duration-200 flex flex-col' + (!sidebarOpen ? ' md:w-0 md:overflow-hidden' : '') },
+            React.createElement('div', { className: 'p-4 border-b border-gray-100' },
+                React.createElement('h2', { className: 'text-lg font-bold text-gray-800 flex items-center gap-2' },
+                    React.createElement('svg',
+                        { xmlns: 'http://www.w3.org/2000/svg', width: '20', height: '20', viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: '2', strokeLinecap: 'round', strokeLinejoin: 'round', className: 'text-indigo-600' },
+                        React.createElement('path', { d: 'M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z' }),
+                        React.createElement('path', { d: 'M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z' })
+                    ),
+                    'N1语法特训'
+                ),
+                React.createElement('p', { className: 'text-xs text-gray-400 mt-1' }, '共 ' + ALL_DATA.length + ' 条 · ' + chapters.length + ' 单元')
+            ),
+            React.createElement('div', { className: 'px-3 py-2 border-b border-gray-100 flex items-center justify-between' },
+                React.createElement('button', { onClick: toggleAll, className: 'text-xs font-medium text-indigo-600 hover:text-indigo-800 flex items-center gap-1' },
+                    React.createElement('span', { className: 'inline-flex items-center justify-center w-4 h-4 rounded border ' + (isAllSelected ? 'bg-indigo-600 border-indigo-600 text-white' : 'border-gray-300 bg-white') },
+                        isAllSelected ? React.createElement('svg', { xmlns: 'http://www.w3.org/2000/svg', width: '10', height: '10', viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: '3' }, React.createElement('path', { d: 'M20 6L9 17l-5-5' })) : null
+                    ),
+                    isAllSelected ? '全选' : '已选 ' + selectedChapters.length + '/' + chapters.length
+                )
+            ),
+            React.createElement('div', { className: 'flex-1 overflow-y-auto no-scrollbar p-2' },
+                chapterStats.map(function(cs, i) {
+                    var isChecked = selectedChapters.indexOf(cs.name) >= 0;
+                    return React.createElement('button', { key: i, onClick: function(){ toggleChapter(cs.name); }, className: 'sidebar-item w-full text-left px-3 py-2 rounded-lg text-sm mb-1 ' + (isChecked ? 'active' : 'text-gray-600') },
+                        React.createElement('div', { className: 'flex items-center gap-2' },
+                            React.createElement('span', { className: 'inline-flex items-center justify-center w-4 h-4 rounded border flex-shrink-0 ' + (isChecked ? 'bg-indigo-600 border-indigo-600 text-white' : 'border-gray-300 bg-white') },
+                                isChecked ? React.createElement('svg', { xmlns: 'http://www.w3.org/2000/svg', width: '10', height: '10', viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: '3' }, React.createElement('path', { d: 'M20 6L9 17l-5-5' })) : null
+                            ),
+                            React.createElement('span', { className: 'truncate' }, cs.name),
+                            React.createElement('span', { className: 'text-xs text-gray-400 ml-auto' }, cs.total + '条')
+                        ),
+                        cs.mastered > 0 ? React.createElement('div', { className: 'w-full bg-gray-200 rounded-full h-1 mt-1' },
+                            React.createElement('div', { className: 'bg-green-400 h-1 rounded-full transition-all', style: { width: Math.round(cs.mastered/cs.total*100) + '%' } })
+                        ) : null
+                    );
+                })
+            )
+        ),
 
-                <div className="px-3 py-2 border-b border-gray-100 flex items-center justify-between">
-                    <button onClick={toggleAll} className="text-xs font-medium text-indigo-600 hover:text-indigo-800 flex items-center gap-1">
-                        <span className={`inline-flex items-center justify-center w-4 h-4 rounded border ${isAllSelected ? 'bg-indigo-600 border-indigo-600 text-white' : 'border-gray-300 bg-white'}`}>
-                            {isAllSelected && <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M20 6L9 17l-5-5"/></svg>}
-                        </span>
-                        {isAllSelected ? '全选' : `已选 ${selectedChapters.length}/${allChapters.length}`}
-                    </button>
-                </div>
+        React.createElement('div', { className: 'flex-1 flex flex-col min-w-0 relative' },
+            React.createElement('header', { className: 'p-3 sm:p-4 pb-2 bg-white border-b border-gray-100' },
+                React.createElement('div', { className: 'flex items-center justify-between' },
+                    React.createElement('div', { className: 'flex items-center gap-2 min-w-0' },
+                        React.createElement('button', { onClick: function(){ setSidebarOpen(!sidebarOpen); }, className: 'p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 shrink-0' },
+                            React.createElement('svg', { xmlns: 'http://www.w3.org/2000/svg', width: '20', height: '20', viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: '2', strokeLinecap: 'round', strokeLinejoin: 'round' },
+                                React.createElement('line', { x1: '4', x2: '20', y1: '12', y2: '12' }),
+                                React.createElement('line', { x1: '4', x2: '20', y1: '6', y2: '6' }),
+                                React.createElement('line', { x1: '4', x2: '20', y1: '18', y2: '18' })
+                            )
+                        ),
+                        React.createElement('h1', { className: 'text-sm sm:text-base font-bold text-gray-800 truncate' },
+                            isAllSelected ? 'N1语法特训' : '已选' + selectedChapters.length + '单元'
+                        )
+                    ),
+                    React.createElement('div', { className: 'flex items-center gap-1 shrink-0' },
+                        React.createElement('div', { className: 'relative' },
+                            React.createElement('button', { onClick: function(){ setSearchOpen(!searchOpen); setTimeout(function(){ if (searchInputRef.current) searchInputRef.current.focus(); }, 100); }, className: 'p-1.5 rounded-lg hover:bg-gray-100 text-gray-500' },
+                                React.createElement('svg', { xmlns: 'http://www.w3.org/2000/svg', width: '18', height: '18', viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: '2', strokeLinecap: 'round', strokeLinejoin: 'round' },
+                                    React.createElement('circle', { cx: '11', cy: '11', r: '8' }),
+                                    React.createElement('path', { d: 'm21 21-4.3-4.3' })
+                                )
+                            ),
+                            searchOpen ? React.createElement('input', { ref: searchInputRef, type: 'text', value: searchQuery, onChange: function(e){ setSearchQuery(e.target.value); setCurrentIndex(0); setIsFlipped(false); }, placeholder: '搜索语法...', className: 'absolute right-0 top-8 w-44 sm:w-56 px-3 py-1.5 text-sm border border-gray-200 rounded-lg shadow-lg bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300 fade-in z-50' }) : null
+                        ),
+                        React.createElement('a', { href: '../', className: 'p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-indigo-600 transition-colors', title: '返回主页' },
+                            React.createElement('svg', { xmlns: 'http://www.w3.org/2000/svg', width: '18', height: '18', viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: '2', strokeLinecap: 'round', strokeLinejoin: 'round' },
+                                React.createElement('path', { d: 'm15 18-6-6 6-6' })
+                            )
+                        )
+                    )
+                ),
+                React.createElement('div', { className: 'flex items-center gap-2 mt-2' },
+                    React.createElement('div', { className: 'flex-1 bg-gray-100 rounded-full h-1.5' },
+                        React.createElement('div', { className: 'bg-indigo-500 h-1.5 rounded-full transition-all', style: { width: progressPercent + '%' } })
+                    ),
+                    React.createElement('span', { className: 'text-xs text-gray-400 whitespace-nowrap shrink-0' }, masteredInFilter + '/' + totalInFilter)
+                )
+            ),
 
-                <div className="flex-1 overflow-y-auto no-scrollbar p-2">
-                    {chapterStats.map((cs, i) => {
-                        const isChecked = selectedChapters.includes(cs.name);
-                        return (
-                            <button key={i} onClick={() => toggleChapter(cs.name)} className={`sidebar-item w-full text-left px-3 py-2 rounded-lg text-sm mb-1 ${isChecked ? 'active' : 'text-gray-600'}`}>
-                                <div className="flex items-center gap-2">
-                                    <span className={`inline-flex items-center justify-center w-4 h-4 rounded border flex-shrink-0 ${isChecked ? 'bg-indigo-600 border-indigo-600 text-white' : 'border-gray-300 bg-white'}`}>
-                                        {isChecked && <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M20 6L9 17l-5-5"/></svg>}
-                                    </span>
-                                    <span className="truncate">{cs.name}</span>
-                                    <span className="text-xs text-gray-400 ml-auto">{cs.total}条</span>
-                                </div>
-                                {cs.mastered > 0 && <div className="w-full bg-gray-200 rounded-full h-1 mt-1"><div className="bg-green-400 h-1 rounded-full transition-all" style={{ width: `${Math.round(cs.mastered/cs.total*100)}%` }} /></div>}
-                            </button>
-                        );
-                    })}
-                </div>
-            </div>
-
-            {/* Main content */}
-            <div className="flex-1 flex flex-col min-w-0 relative">
-                <header className="p-3 sm:p-4 pb-2 bg-white border-b border-gray-100">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2 min-w-0">
-                            <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 shrink-0">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg>
-                            </button>
-                            <h1 className="text-sm sm:text-base font-bold text-gray-800 truncate">
-                                {isAllSelected ? 'N1语法特训' : `已选${selectedChapters.length}单元`}
-                            </h1>
-                        </div>
-                        <div className="flex items-center gap-1 shrink-0">
-                            <div className="relative">
-                                <button onClick={() => { setSearchOpen(!searchOpen); setTimeout(() => searchInputRef.current?.focus(), 100); }} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-                                </button>
-                                {searchOpen && <input ref={searchInputRef} type="text" value={searchQuery} onChange={e => { setSearchQuery(e.target.value); setCurrentIndex(0); setIsFlipped(false); }} placeholder="搜索语法/接续/例句..." className="absolute right-0 top-8 w-44 sm:w-56 px-3 py-1.5 text-sm border border-gray-200 rounded-lg shadow-lg bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300 fade-in z-50" />}
-                            </div>
-                            <a href="../" className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-indigo-600 transition-colors" title="返回主页">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
-                            </a>
-                        </div>
-                    </div>
-                    <div className="flex items-center gap-2 mt-2">
-                        <div className="flex-1 bg-gray-100 rounded-full h-1.5"><div className="bg-indigo-500 h-1.5 rounded-full transition-all" style={{ width: `${progressPercent}%` }} /></div>
-                        <span className="text-xs text-gray-400 whitespace-nowrap shrink-0">{masteredInFilter}/{totalInFilter}</span>
-                    </div>
-                </header>
-
-                <div className="flex-1 flex flex-col min-h-0">
-                    {selectedChapters.length === 0 ? (
-                        <div className="flex-1 flex items-center justify-center p-4">
-                            <div className="w-full max-w-lg bg-white rounded-3xl p-6 sm:p-8 text-center shadow-sm border border-gray-100 flex flex-col items-center justify-center">
-                                <div className="w-16 h-16 sm:w-20 sm:h-20 bg-indigo-50 rounded-full flex items-center justify-center mb-4"><svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-indigo-500"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></div>
-                                <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-2">请先选择单元</h2>
-                                <p className="text-gray-500 mb-6 text-sm">点击左侧菜单勾选要学习的单元</p>
-                                <button onClick={() => { setSelectedChapters(allChapters.map(c => c.name)); saveSelectedChapters(allChapters.map(c => c.name)); setCurrentIndex(0); setIsFlipped(false); }} className="w-full bg-indigo-600 text-white py-3 rounded-2xl font-bold active:scale-95 transition-transform">选择全部 {allChapters.length} 单元</button>
-                            </div>
-                        </div>
-                    ) : filteredCards.length > 0 && currentCard ? (
-                        <div className="flex-1 flex flex-col min-h-0 px-1">
-                            {/* 顶部信息区 */}
-                            <div className="flex-shrink-0 pt-3 sm:pt-4 pb-2">
-                                <div className="w-full max-w-lg mx-auto flex justify-between items-center mb-2">
-                                    <span className="text-xs text-gray-400 truncate">{getChapterName(currentCard.id)} · No.{currentCard.id} ({currentIndex + 1}/{filteredCards.length})</span>
-                                    <button onClick={shuffleCards} className="text-gray-400 hover:text-indigo-500 p-1 shrink-0" title="随机打乱"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><path d="M7.5 4.21 12 6.81l4.5-2.6"/><path d="M21 16v2a2 2 0 0 1-1 1.73l-7 4a2 2 0 0 1-2 0l-7-4A2 2 0 0 1 3 18v-2"/></svg></button>
-                                </div>
-                                <div className="w-full max-w-lg mx-auto">
-                                    <div className="flex items-center gap-1.5">
-                                        <div className="flex bg-gray-50 rounded-lg p-0.5 border border-gray-200 flex-1">
-                                            <button onClick={() => { setFilterMode('learning'); setCurrentIndex(0); setIsFlipped(false); }} className={`flex-1 py-1.5 text-xs font-medium rounded transition-colors ${filterMode === 'learning' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-400'}`}>仅生疏</button>
-                                            <button onClick={() => { setFilterMode('all'); setCurrentIndex(0); setIsFlipped(false); }} className={`flex-1 py-1.5 text-xs font-medium rounded transition-colors ${filterMode === 'all' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-400'}`}>全部</button>
-                                        </div>
-                                        <div className="flex bg-gray-50 rounded-lg p-0.5 border border-gray-200 flex-1">
-                                            <button onClick={() => { setFlipMode('ja_zh'); setCurrentIndex(0); setIsFlipped(false); }} className={`flex-1 py-1.5 text-xs font-medium rounded transition-colors ${flipMode === 'ja_zh' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-400'}`}>日→中</button>
-                                            <button onClick={() => { setFlipMode('zh_ja'); setCurrentIndex(0); setIsFlipped(false); }} className={`flex-1 py-1.5 text-xs font-medium rounded transition-colors ${flipMode === 'zh_ja' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-400'}`}>中→日</button>
-                                            <button onClick={() => { setFlipMode('conn_ex'); setCurrentIndex(0); setIsFlipped(false); }} className={`flex-1 py-1.5 text-xs font-medium rounded transition-colors ${flipMode === 'conn_ex' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-400'}`}>接→用</button>
-                                            <button onClick={() => { setFlipMode('random'); setCurrentIndex(0); setIsFlipped(false); }} className={`flex-1 py-1.5 text-xs font-medium rounded transition-colors ${flipMode === 'random' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-400'}`}>🎲</button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* 卡片区域 */}
-                            <div className="flex-1 flex items-center justify-center min-h-0 pb-2">
-                                <div className="w-full max-w-lg aspect-[3/4] max-h-full perspective-1000 cursor-pointer" onClick={handleFlip}>
-                                    <div className={`relative w-full h-full card-transition transform-style-3d ${isFlipped ? 'rotate-y-180' : ''}`}>
-                                        {/* 正面 */}
-                                        <div className={`absolute w-full h-full backface-hidden bg-white rounded-3xl shadow-lg border-2 flex flex-col items-center justify-center p-6 sm:p-8 text-center ${isCurrentMastered ? 'border-green-400' : 'border-transparent'}`}>
-                                            {isCurrentMastered && <div className="absolute top-3 right-3 sm:top-4 sm:right-4 bg-green-50 text-green-500 px-2 py-1 rounded-full text-xs font-bold flex items-center"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> 已掌握</div>}
-                                            <span className="text-xs font-bold text-gray-300 uppercase mb-3 sm:mb-4 tracking-widest">{cardFront.label}</span>
-                                            <h2 className="text-3xl sm:text-4xl font-bold text-gray-800 leading-snug mb-3">{cardFront.content}</h2>
-                                            <div className="absolute bottom-4 sm:bottom-5 text-xs text-indigo-400 bg-indigo-50 px-3 py-1.5 sm:px-4 sm:py-2 rounded-full animate-pulse flex items-center"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1"><path d="M7 8l5 13L7 8z"/><path d="M17 8l-5 13L17 8z"/><path d="M12 3v18"/></svg> {cardFront.hint}</div>
-                                        </div>
-
-                                        {/* 背面 */}
-                                        <div className="absolute w-full h-full backface-hidden rotate-y-180 bg-gradient-to-br from-indigo-900 to-purple-900 rounded-3xl shadow-lg border border-indigo-700 flex flex-col p-4 sm:p-6 text-center text-white overflow-y-auto no-scrollbar">
-                                            <div className="w-full mt-auto mb-auto">
-                                                {cardBack.ja && (
-                                                    <div className="mb-2 sm:mb-3">
-                                                        <span className="text-xs font-bold text-indigo-300/70 uppercase mb-1 block tracking-widest">日文句型</span>
-                                                        <h2 className="text-2xl sm:text-3xl font-bold text-indigo-50">{cardBack.ja}</h2>
-                                                    </div>
-                                                )}
-                                                {cardBack.zh && (
-                                                    <div className="mb-2 sm:mb-3">
-                                                        <span className="text-xs font-bold text-indigo-300/70 uppercase mb-1 block tracking-widest">中文含义</span>
-                                                        <h2 className="text-xl sm:text-2xl font-bold leading-relaxed text-indigo-50">{cardBack.zh}</h2>
-                                                    </div>
-                                                )}
-                                                {cardBack.extra && (
-                                                    <div className="mb-2 sm:mb-3 bg-white/10 p-3 sm:p-4 rounded-2xl backdrop-blur-sm border border-white/10">
-                                                        <span className="text-xs font-bold text-indigo-300/70 uppercase mb-2 block tracking-widest">额外信息</span>
-                                                        <p className="text-base sm:text-lg leading-relaxed text-indigo-100">{cardBack.extra}</p>
-                                                    </div>
-                                                )}
-                                                <div className="text-left bg-white/10 p-3 sm:p-4 rounded-2xl backdrop-blur-sm border border-white/10">
-                                                    {cardBack.conn && (
-                                                        <div className="mb-3 sm:mb-4 pb-2 sm:pb-3 border-b border-indigo-300/20">
-                                                            <div className="flex items-center text-indigo-200 text-xs font-bold mb-2"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1.5 text-pink-300"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg> 【接续规则】</div>
-                                                            <p className="text-sm sm:text-base font-medium text-pink-100 tracking-wide leading-relaxed">{cardBack.conn}</p>
-                                                        </div>
-                                                    )}
-                                                    {cardBack.exJa && (
-                                                        <div className="mb-3 sm:mb-4 pb-2 sm:pb-3 border-b border-indigo-300/20">
-                                                            <div className="flex items-center text-indigo-200 text-xs font-bold mb-2"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1.5 text-blue-300"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> 【例句】</div>
-                                                            <p className="text-sm sm:text-[1.05rem] font-medium text-blue-100 tracking-wide leading-relaxed mb-1.5">{renderRubyText(cardBack.exJa)}</p>
-                                                            {cardBack.exZh && <p className="text-xs sm:text-sm text-indigo-200/80 leading-relaxed">{cardBack.exZh}</p>}
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* 底部按钮 */}
-                            <div className="flex-shrink-0 pb-3 sm:pb-4">
-                                <div className="w-full max-w-lg mx-auto flex flex-col gap-2 sm:gap-3">
-                                    <div className="flex gap-2 sm:gap-3">
-                                        <button onClick={goNext} className="flex-1 bg-indigo-600 text-white rounded-2xl font-bold text-base sm:text-lg flex items-center justify-center shadow-md shadow-indigo-600/20 active:scale-95 transition-transform h-12 sm:h-14">下一个 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="ml-1"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></button>
-                                        <button onClick={toggleMasterStatus} className={`flex-1 rounded-2xl font-bold text-sm sm:text-base flex items-center justify-center shadow-sm active:scale-95 transition-transform border-2 h-12 sm:h-14 ${isCurrentMastered ? 'bg-white border-gray-200 text-gray-400' : 'bg-green-50 border-green-100 text-green-600'}`}>{isCurrentMastered ? '标为生疏' : '已掌握'}</button>
-                                    </div>
-                                    <div className="flex justify-between items-center px-1 sm:px-2">
-                                        <button onClick={goPrev} disabled={currentIndex === 0} className={`flex items-center text-xs sm:text-sm font-medium py-2 px-3 sm:px-4 rounded-full ${currentIndex === 0 ? 'text-gray-300 cursor-not-allowed' : 'text-gray-500 hover:bg-gray-100'}`}><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1"><path d="m15 18-6-6 6-6"/></svg> 上一个</button>
-                                        <button onClick={resetProgress} className="text-xs text-gray-300 hover:text-red-400 py-2 transition-colors">清空进度</button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    ) : masteredInFilter === totalInFilter && totalInFilter > 0 ? (
-                        <div className="flex-1 flex items-center justify-center p-4">
-                            <div className="w-full max-w-lg bg-white rounded-3xl p-6 sm:p-8 text-center shadow-sm border border-gray-100 flex flex-col items-center justify-center">
-                                <div className="w-16 h-16 sm:w-20 sm:h-20 bg-green-50 rounded-full flex items-center justify-center mb-4"><svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-green-500"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div>
-                                <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-2">太棒了！</h2>
-                                <p className="text-gray-500 mb-6 text-sm">已选单元的 {totalInFilter} 条语法全部掌握</p>
-                                <button onClick={() => { setFilterMode('all'); setCurrentIndex(0); setIsFlipped(false); }} className="w-full bg-gray-100 text-gray-600 py-3 rounded-2xl font-bold active:scale-95 transition-transform">重新复习</button>
-                            </div>
-                        </div>
-                    ) : (
-                        <div className="flex-1 flex items-center justify-center p-4">
-                            <div className="w-full max-w-lg bg-white rounded-3xl p-6 sm:p-8 text-center shadow-sm border border-gray-100 flex flex-col items-center justify-center">
-                                <div className="w-16 h-16 sm:w-20 sm:h-20 bg-amber-50 rounded-full flex items-center justify-center mb-4"><svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-amber-500"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg></div>
-                                <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-2">没有匹配的语法</h2>
-                                <p className="text-gray-500 mb-6 text-sm">当前筛选条件下没有找到语法</p>
-                                <button onClick={() => { setFilterMode('all'); setSearchQuery(''); setCurrentIndex(0); setIsFlipped(false); }} className="w-full bg-indigo-600 text-white py-3 rounded-2xl font-bold active:scale-95 transition-transform">重置筛选</button>
-                            </div>
-                        </div>
-                    )}
-                </div>
-
-                <div className="px-4 py-2 text-center text-xs text-gray-300 border-t border-gray-100 hidden sm:block">← → 切换 · 空格 翻转 · M 标记掌握</div>
-            </div>
-        </div>
+            React.createElement('div', { className: 'flex-1 flex flex-col min-h-0' },
+                selectedChapters.length === 0
+                    ? React.createElement('div', { className: 'flex-1 flex items-center justify-center p-4' },
+                        React.createElement('div', { className: 'w-full max-w-lg bg-white rounded-3xl p-6 sm:p-8 text-center shadow-sm border border-gray-100 flex flex-col items-center justify-center' },
+                            React.createElement('div', { className: 'w-16 h-16 sm:w-20 sm:h-20 bg-indigo-50 rounded-full flex items-center justify-center mb-4' },
+                                React.createElement('svg', { xmlns: 'http://www.w3.org/2000/svg', width: '32', height: '32', viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: '2', strokeLinecap: 'round', strokeLinejoin: 'round', className: 'text-indigo-500' },
+                                    React.createElement('path', { d: 'M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z' }),
+                                    React.createElement('path', { d: 'M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z' })
+                                )
+                            ),
+                            React.createElement('h2', { className: 'text-xl sm:text-2xl font-bold text-gray-800 mb-2' }, '请先选择单元'),
+                            React.createElement('p', { className: 'text-gray-500 mb-6 text-sm' }, '点击左侧菜单勾选要学习的单元'),
+                            React.createElement('button', {
+                                onClick: function(){ setSelectedChapters(chapterNames.slice()); saveSelectedChapters(chapterNames.slice()); setCurrentIndex(0); setIsFlipped(false); },
+                                className: 'w-full bg-indigo-600 text-white py-3 rounded-2xl font-bold active:scale-95 transition-transform'
+                            }, '选择全部 ' + chapters.length + ' 单元')
+                        )
+                    )
+                    : filteredCards.length > 0 && currentCard
+                        ? React.createElement('div', { className: 'flex-1 flex flex-col min-h-0 px-1' },
+                            React.createElement('div', { className: 'flex-shrink-0 pt-3 sm:pt-4 pb-2' },
+                                React.createElement('div', { className: 'w-full max-w-lg mx-auto flex justify-between items-center mb-2' },
+                                    React.createElement('span', { className: 'text-xs text-gray-400 truncate' },
+                                        (chapters[getChapterIdx(currentCard.id)] ? chapters[getChapterIdx(currentCard.id)].name : '') +
+                                        ' · No.' + currentCard.id + ' (' + (currentIndex + 1) + '/' + filteredCards.length + ')'
+                                    ),
+                                    React.createElement('button', { onClick: shuffleCards, className: 'text-gray-400 hover:text-indigo-500 p-1 shrink-0', title: '随机打乱' },
+                                        React.createElement('svg', { xmlns: 'http://www.w3.org/2000/svg', width: '16', height: '16', viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: '2', strokeLinecap: 'round', strokeLinejoin: 'round' },
+                                            React.createElement('path', { d: 'M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z' }),
+                                            React.createElement('path', { d: 'M7.5 4.21 12 6.81l4.5-2.6' }),
+                                            React.createElement('path', { d: 'M21 16v2a2 2 0 0 1-1 1.73l-7 4a2 2 0 0 1-2 0l-7-4A2 2 0 0 1 3 18v-2' })
+                                        )
+                                    )
+                                ),
+                                React.createElement('div', { className: 'w-full max-w-lg mx-auto' },
+                                    React.createElement('div', { className: 'flex items-center gap-1.5' },
+                                        React.createElement('div', { className: 'flex bg-gray-50 rounded-lg p-0.5 border border-gray-200 flex-1' },
+                                            React.createElement('button', { onClick: function(){ setFilterMode('learning'); setCurrentIndex(0); setIsFlipped(false); }, className: 'flex-1 py-1.5 text-xs font-medium rounded transition-colors ' + (filterMode === 'learning' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-400') }, '仅生疏'),
+                                            React.createElement('button', { onClick: function(){ setFilterMode('all'); setCurrentIndex(0); setIsFlipped(false); }, className: 'flex-1 py-1.5 text-xs font-medium rounded transition-colors ' + (filterMode === 'all' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-400') }, '全部')
+                                        ),
+                                        React.createElement('div', { className: 'flex bg-gray-50 rounded-lg p-0.5 border border-gray-200 flex-1' },
+                                            React.createElement('button', { onClick: function(){ setFlipMode('ja_zh'); setCurrentIndex(0); setIsFlipped(false); }, className: 'flex-1 py-1.5 text-xs font-medium rounded transition-colors ' + (flipMode === 'ja_zh' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-400') }, '日→中'),
+                                            React.createElement('button', { onClick: function(){ setFlipMode('zh_ja'); setCurrentIndex(0); setIsFlipped(false); }, className: 'flex-1 py-1.5 text-xs font-medium rounded transition-colors ' + (flipMode === 'zh_ja' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-400') }, '中→日'),
+                                            React.createElement('button', { onClick: function(){ setFlipMode('conn_ex'); setCurrentIndex(0); setIsFlipped(false); }, className: 'flex-1 py-1.5 text-xs font-medium rounded transition-colors ' + (flipMode === 'conn_ex' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-400') }, '接→用'),
+                                            React.createElement('button', { onClick: function(){ setFlipMode('random'); setCurrentIndex(0); setIsFlipped(false); }, className: 'flex-1 py-1.5 text-xs font-medium rounded transition-colors ' + (flipMode === 'random' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-400') }, '🎲')
+                                        )
+                                    )
+                                )
+                            ),
+                            React.createElement('div', { className: 'flex-1 flex items-center justify-center min-h-0 pb-2' },
+                                React.createElement('div', { className: 'w-full max-w-lg aspect-[3/4] max-h-full perspective-1000 cursor-pointer', onClick: handleFlip },
+                                    React.createElement('div', { className: 'relative w-full h-full card-transition transform-style-3d ' + (isFlipped ? 'rotate-y-180' : '') },
+                                        React.createElement('div', { className: 'absolute w-full h-full backface-hidden bg-white rounded-3xl shadow-lg border-2 flex flex-col items-center justify-center p-6 sm:p-8 text-center ' + (isCurrentMastered ? 'border-green-400' : 'border-transparent') },
+                                            isCurrentMastered ? React.createElement('div', { className: 'absolute top-3 right-3 sm:top-4 sm:right-4 bg-green-50 text-green-500 px-2 py-1 rounded-full text-xs font-bold flex items-center' },
+                                                React.createElement('svg', { xmlns: 'http://www.w3.org/2000/svg', width: '12', height: '12', viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: '2', strokeLinecap: 'round', strokeLinejoin: 'round', className: 'mr-1' },
+                                                    React.createElement('path', { d: 'M22 11.08V12a10 10 0 1 1-5.93-9.14' }),
+                                                    React.createElement('polyline', { points: '22 4 12 14.01 9 11.01' })
+                                                ),
+                                                '已掌握'
+                                            ) : null,
+                                            React.createElement('span', { className: 'text-xs font-bold text-gray-300 uppercase mb-3 sm:mb-4 tracking-widest' }, cardFront.label),
+                                            React.createElement('h2', { className: 'text-3xl sm:text-4xl font-bold text-gray-800 leading-snug mb-3' }, cardFront.content),
+                                            React.createElement('div', { className: 'absolute bottom-4 sm:bottom-5 text-xs text-indigo-400 bg-indigo-50 px-3 py-1.5 sm:px-4 sm:py-2 rounded-full animate-pulse flex items-center' },
+                                                React.createElement('svg', { xmlns: 'http://www.w3.org/2000/svg', width: '12', height: '12', viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: '2', strokeLinecap: 'round', strokeLinejoin: 'round', className: 'mr-1' },
+                                                    React.createElement('path', { d: 'M7 8l5 13L7 8z' }),
+                                                    React.createElement('path', { d: 'M17 8l-5 13L17 8z' }),
+                                                    React.createElement('path', { d: 'M12 3v18' })
+                                                ),
+                                                cardFront.hint
+                                            )
+                                        ),
+                                        React.createElement('div', { className: 'absolute w-full h-full backface-hidden rotate-y-180 bg-gradient-to-br from-indigo-900 to-purple-900 rounded-3xl shadow-lg border border-indigo-700 flex flex-col p-4 sm:p-6 text-center text-white overflow-y-auto no-scrollbar' },
+                                            React.createElement('div', { className: 'w-full mt-auto mb-auto' },
+                                                cardBack.ja ? React.createElement('div', { className: 'mb-2 sm:mb-3' },
+                                                    React.createElement('span', { className: 'text-xs font-bold text-indigo-300/70 uppercase mb-1 block tracking-widest' }, '日文句型'),
+                                                    React.createElement('h2', { className: 'text-2xl sm:text-3xl font-bold text-indigo-50' }, cardBack.ja)
+                                                ) : null,
+                                                cardBack.zh ? React.createElement('div', { className: 'mb-2 sm:mb-3' },
+                                                    React.createElement('span', { className: 'text-xs font-bold text-indigo-300/70 uppercase mb-1 block tracking-widest' }, '中文含义'),
+                                                    React.createElement('h2', { className: 'text-xl sm:text-2xl font-bold leading-relaxed text-indigo-50' }, cardBack.zh)
+                                                ) : null,
+                                                cardBack.extra ? React.createElement('div', { className: 'mb-2 sm:mb-3 bg-white/10 p-3 sm:p-4 rounded-2xl backdrop-blur-sm border border-white/10' },
+                                                    React.createElement('span', { className: 'text-xs font-bold text-indigo-300/70 uppercase mb-2 block tracking-widest' }, cardBack.extraTitle || '额外信息'),
+                                                    React.createElement('p', { className: 'text-base sm:text-lg leading-relaxed text-indigo-100' }, cardBack.extra)
+                                                ) : null,
+                                                React.createElement('div', { className: 'text-left bg-white/10 p-3 sm:p-4 rounded-2xl backdrop-blur-sm border border-white/10' },
+                                                    cardBack.conn ? React.createElement('div', { className: 'mb-3 sm:mb-4 pb-2 sm:pb-3 border-b border-indigo-300/20' },
+                                                        React.createElement('div', { className: 'flex items-center text-indigo-200 text-xs font-bold mb-2' },
+                                                            React.createElement('svg', { xmlns: 'http://www.w3.org/2000/svg', width: '14', height: '14', viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: '2', strokeLinecap: 'round', strokeLinejoin: 'round', className: 'mr-1.5 text-pink-300' },
+                                                                React.createElement('path', { d: 'M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71' }),
+                                                                React.createElement('path', { d: 'M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71' })
+                                                            ),
+                                                            ' 【接续规则】'
+                                                        ),
+                                                        React.createElement('p', { className: 'text-sm sm:text-base font-medium text-pink-100 tracking-wide leading-relaxed' }, cardBack.conn)
+                                                    ) : null,
+                                                    cardBack.exJa ? React.createElement('div', { className: 'mb-3 sm:mb-4 pb-2 sm:pb-3 border-b border-indigo-300/20' },
+                                                        React.createElement('div', { className: 'flex items-center text-indigo-200 text-xs font-bold mb-2' },
+                                                            React.createElement('svg', { xmlns: 'http://www.w3.org/2000/svg', width: '14', height: '14', viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: '2', strokeLinecap: 'round', strokeLinejoin: 'round', className: 'mr-1.5 text-blue-300' },
+                                                                React.createElement('path', { d: 'M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z' })
+                                                            ),
+                                                            ' 【例句】'
+                                                        ),
+                                                        React.createElement('p', { className: 'text-sm sm:text-[1.05rem] font-medium text-blue-100 tracking-wide leading-relaxed mb-1.5' }, renderRubyText(cardBack.exJa)),
+                                                        cardBack.exZh ? React.createElement('p', { className: 'text-xs sm:text-sm text-indigo-200/80 leading-relaxed' }, cardBack.exZh) : null
+                                                    ) : null
+                                                )
+                                            )
+                                        )
+                                    )
+                                )
+                            ),
+                            React.createElement('div', { className: 'flex-shrink-0 pb-3 sm:pb-4' },
+                                React.createElement('div', { className: 'w-full max-w-lg mx-auto flex flex-col gap-2 sm:gap-3' },
+                                    React.createElement('div', { className: 'flex gap-2 sm:gap-3' },
+                                        React.createElement('button', { onClick: goNext, className: 'flex-1 bg-indigo-600 text-white rounded-2xl font-bold text-base sm:text-lg flex items-center justify-center shadow-md shadow-indigo-600/20 active:scale-95 transition-transform h-12 sm:h-14' },
+                                            '下一个 ',
+                                            React.createElement('svg', { xmlns: 'http://www.w3.org/2000/svg', width: '18', height: '18', viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: '2', strokeLinecap: 'round', strokeLinejoin: 'round', className: 'ml-1' },
+                                                React.createElement('path', { d: 'M5 12h14' }),
+                                                React.createElement('path', { d: 'm12 5 7 7-7 7' })
+                                            )
+                                        ),
+                                        React.createElement('button', { onClick: toggleMasterStatus, className: 'flex-1 rounded-2xl font-bold text-sm sm:text-base flex items-center justify-center shadow-sm active:scale-95 transition-transform border-2 h-12 sm:h-14 ' + (isCurrentMastered ? 'bg-white border-gray-200 text-gray-400' : 'bg-green-50 border-green-100 text-green-600') },
+                                            isCurrentMastered ? '标为生疏' : '已掌握'
+                                        )
+                                    ),
+                                    React.createElement('div', { className: 'flex justify-between items-center px-1 sm:px-2' },
+                                        React.createElement('button', { onClick: goPrev, disabled: currentIndex === 0, className: 'flex items-center text-xs sm:text-sm font-medium py-2 px-3 sm:px-4 rounded-full ' + (currentIndex === 0 ? 'text-gray-300 cursor-not-allowed' : 'text-gray-500 hover:bg-gray-100') },
+                                            React.createElement('svg', { xmlns: 'http://www.w3.org/2000/svg', width: '14', height: '14', viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: '2', strokeLinecap: 'round', strokeLinejoin: 'round', className: 'mr-1' },
+                                                React.createElement('path', { d: 'm15 18-6-6 6-6' })
+                                            ),
+                                            '上一个'
+                                        ),
+                                        React.createElement('button', { onClick: resetProgress, className: 'text-xs text-gray-300 hover:text-red-400 py-2 transition-colors' }, '清空进度')
+                                    )
+                                )
+                            )
+                        )
+                        : masteredInFilter === totalInFilter && totalInFilter > 0
+                            ? React.createElement('div', { className: 'flex-1 flex items-center justify-center p-4' },
+                                React.createElement('div', { className: 'w-full max-w-lg bg-white rounded-3xl p-6 sm:p-8 text-center shadow-sm border border-gray-100 flex flex-col items-center justify-center' },
+                                    React.createElement('div', { className: 'w-16 h-16 sm:w-20 sm:h-20 bg-green-50 rounded-full flex items-center justify-center mb-4' },
+                                        React.createElement('svg', { xmlns: 'http://www.w3.org/2000/svg', width: '32', height: '32', viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: '2', strokeLinecap: 'round', strokeLinejoin: 'round', className: 'text-green-500' },
+                                            React.createElement('path', { d: 'M22 11.08V12a10 10 0 1 1-5.93-9.14' }),
+                                            React.createElement('polyline', { points: '22 4 12 14.01 9 11.01' })
+                                        )
+                                    ),
+                                    React.createElement('h2', { className: 'text-xl sm:text-2xl font-bold text-gray-800 mb-2' }, '太棒了！'),
+                                    React.createElement('p', { className: 'text-gray-500 mb-6 text-sm' }, '已选单元的 ' + totalInFilter + ' 条语法全部掌握'),
+                                    React.createElement('button', { onClick: function(){ setFilterMode('all'); setCurrentIndex(0); setIsFlipped(false); }, className: 'w-full bg-gray-100 text-gray-600 py-3 rounded-2xl font-bold active:scale-95 transition-transform' }, '重新复习')
+                                )
+                            )
+                            : React.createElement('div', { className: 'flex-1 flex items-center justify-center p-4' },
+                                React.createElement('div', { className: 'w-full max-w-lg bg-white rounded-3xl p-6 sm:p-8 text-center shadow-sm border border-gray-100 flex flex-col items-center justify-center' },
+                                    React.createElement('div', { className: 'w-16 h-16 sm:w-20 sm:h-20 bg-amber-50 rounded-full flex items-center justify-center mb-4' },
+                                        React.createElement('svg', { xmlns: 'http://www.w3.org/2000/svg', width: '32', height: '32', viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: '2', strokeLinecap: 'round', strokeLinejoin: 'round', className: 'text-amber-500' },
+                                            React.createElement('circle', { cx: '12', cy: '12', r: '10' }),
+                                            React.createElement('line', { x1: '12', x2: '12', y1: '8', y2: '12' }),
+                                            React.createElement('line', { x1: '12', x2: '12.01', y1: '16', y2: '16' })
+                                        )
+                                    ),
+                                    React.createElement('h2', { className: 'text-xl sm:text-2xl font-bold text-gray-800 mb-2' }, '没有匹配的语法'),
+                                    React.createElement('p', { className: 'text-gray-500 mb-6 text-sm' }, '当前筛选条件下没有找到语法'),
+                                    React.createElement('button', { onClick: function(){ setFilterMode('all'); setSearchQuery(''); setCurrentIndex(0); setIsFlipped(false); }, className: 'w-full bg-indigo-600 text-white py-3 rounded-2xl font-bold active:scale-95 transition-transform' }, '重置筛选')
+                                )
+                            )
+            ),
+            React.createElement('div', { className: 'px-4 py-2 text-center text-xs text-gray-300 border-t border-gray-100 hidden sm:block' }, '← → 切换 · 空格 翻转 · M 标记掌握')
+        )
     );
 };
 
-const root = ReactDOM.createRoot(document.getElementById('root'));
+var root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(React.createElement(App));
 </script>
 </body>
