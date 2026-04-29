@@ -367,7 +367,16 @@ const App = () => {
                 </header>
 
                 <div className="flex-1 flex flex-col items-center justify-center p-4 overflow-hidden">
-                    {filteredCards.length > 0 && currentCard ? (
+                    {selectedChapters.length === 0 ? (
+                        <div className="w-full max-w-lg bg-white rounded-3xl p-8 text-center shadow-sm border border-gray-100 flex flex-col items-center justify-center">
+                            <div className="w-20 h-20 bg-purple-50 rounded-full flex items-center justify-center mb-4"><svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" className="text-purple-500"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></div>
+                            <h2 className="text-2xl font-bold text-gray-800 mb-2">请先选择章节</h2>
+                            <p className="text-gray-500 mb-6 text-sm">点击左侧菜单栏勾选要学习的真题章节</p>
+                            <div className="flex gap-2 w-full">
+                                <button onClick={() => { setSelectedChapters([...allChapters]); saveSelectedChapters([...allChapters]); setCurrentIndex(0); setIsFlipped(false); }} className="flex-1 bg-purple-600 text-white py-3 rounded-2xl font-bold active:scale-95 transition-transform">选择全部 {allChapters.length} 章</button>
+                            </div>
+                        </div>
+                    ) : filteredCards.length > 0 && currentCard ? (
                         <>
                             <div className="w-full max-w-lg flex justify-between items-center mb-3 px-1">
                                 <span className="text-xs text-gray-400">{currentCard.chapter} · No.{currentCard.num} ({currentIndex + 1}/{filteredCards.length})</span>
@@ -427,15 +436,6 @@ const App = () => {
                                 </div>
                             </div>
                         </>
-                    ) : selectedChapters.length === 0 ? (
-                        <div className="w-full max-w-lg bg-white rounded-3xl p-8 text-center shadow-sm border border-gray-100 flex flex-col items-center justify-center">
-                            <div className="w-20 h-20 bg-purple-50 rounded-full flex items-center justify-center mb-4"><svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" className="text-purple-500"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></div>
-                            <h2 className="text-2xl font-bold text-gray-800 mb-2">请先选择章节</h2>
-                            <p className="text-gray-500 mb-6 text-sm">点击左侧菜单栏勾选要学习的真题章节</p>
-                            <div className="flex gap-2 w-full">
-                                <button onClick={() => { setSelectedChapters([...allChapters]); saveSelectedChapters([...allChapters]); setCurrentIndex(0); setIsFlipped(false); }} className="flex-1 bg-purple-600 text-white py-3 rounded-2xl font-bold active:scale-95 transition-transform">选择全部 {allChapters.length} 章</button>
-                            </div>
-                        </div>
                     ) : masteredInFilter === totalInFilter && totalInFilter > 0 ? (
                         <div className="w-full max-w-lg bg-white rounded-3xl p-8 text-center shadow-sm border border-gray-100 flex flex-col items-center justify-center">
                             <div className="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center mb-4"><svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" className="text-green-500"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div>
