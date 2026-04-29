@@ -32,7 +32,7 @@ class NoCacheHandler(http.server.SimpleHTTPRequestHandler):
             index = os.path.join(self.directory or '.', path.lstrip('/'), 'index.html')
             if os.path.isfile(index):
                 self.path = path
-        super().do_GET(self)
+        super().do_GET()
 
     def log_message(self, format, *args):
         # Quiet logging

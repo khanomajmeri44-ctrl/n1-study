@@ -4,44 +4,63 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>N1语法翻翻卡</title>
+<link rel="preload" href="grammar.js" as="script">
+<link rel="preload" href="https://unpkg.com/react@18/umd/react.production.min.js" as="script" crossorigin>
+<link rel="preload" href="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" as="script" crossorigin>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
-<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js" defer></script>
 <style>
 .perspective-1000{perspective:1000px}.transform-style-3d{transform-style:preserve-3d}.backface-hidden{backface-visibility:hidden}.rotate-y-180{transform:rotateY(180deg)}.card-transition{transition:transform 0.5s cubic-bezier(0.4,0.2,0.2,1)}
 body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background-color:#f8fafc;overscroll-behavior-y:none;}
 .no-scrollbar::-webkit-scrollbar{display:none}.no-scrollbar{-ms-overflow-style:none;scrollbar-width:none;}
 ruby{ruby-align:center}rt{font-size:0.55em;color:#bfdbfe;transform:translateY(-2px)}
+.sidebar-item{transition: all 0.15s ease}.sidebar-item:hover{background: #f1f5f9}.sidebar-item.active{background: #e0e7ff; color: #4f46e5; font-weight: 600}
+@keyframes fadeIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}.fade-in{animation: fadeIn 0.2s ease-out}
+@keyframes slideIn{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:translateX(0)}}.slide-in{animation: slideIn 0.15s ease-out}
 </style>
 </head>
-<body class="text-gray-800 h-screen overflow-hidden flex flex-col selection:bg-indigo-200">
-<a href="../" class="fixed top-4 left-4 z-50 bg-white/90 backdrop-blur rounded-full px-3 py-1.5 text-xs font-medium text-gray-600 hover:text-indigo-600 shadow-sm border border-gray-200 flex items-center gap-1 transition-colors">
-    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
-    返回主页
-</a>
-<div id="root" class="h-full flex flex-col"></div>
+<body class="text-gray-800 h-screen overflow-hidden flex selection:bg-indigo-200">
+<div id="root" class="h-full w-full flex">
+    <!-- 骨架屏 -->
+    <div id="skeleton" class="flex h-full w-full">
+        <div class="hidden md:flex w-64 bg-white border-r border-gray-200 flex-shrink-0 flex-col">
+            <div class="p-4 border-b border-gray-100 animate-pulse"><div class="h-5 bg-gray-200 rounded w-28 mb-2"></div><div class="h-3 bg-gray-100 rounded w-20"></div></div>
+            <div class="p-2 space-y-2 animate-pulse"><div class="h-6 bg-gray-100 rounded"></div><div class="h-6 bg-gray-100 rounded"></div><div class="h-6 bg-gray-100 rounded"></div><div class="h-6 bg-gray-100 rounded"></div><div class="h-6 bg-gray-100 rounded"></div></div>
+        </div>
+        <div class="flex-1 flex flex-col min-w-0">
+            <div class="p-4 pb-2 bg-white border-b border-gray-100 animate-pulse"><div class="flex items-center justify-between mb-2"><div class="h-5 bg-gray-200 rounded w-32"></div><div class="h-7 bg-gray-100 rounded w-48"></div></div><div class="h-2 bg-gray-100 rounded-full w-full"></div></div>
+            <div class="flex-1 flex items-center justify-center p-4"><div class="w-full max-w-lg animate-pulse"><div class="h-4 bg-gray-100 rounded w-48 mb-3"></div><div class="aspect-[3/4] bg-white rounded-3xl border-2 border-gray-100 shadow-sm flex flex-col items-center justify-center p-8"><div class="h-3 bg-gray-200 rounded w-16 mb-6"></div><div class="h-12 bg-gray-200 rounded w-32 mb-4"></div><div class="h-8 bg-gray-100 rounded w-24"></div></div><div class="flex gap-3 mt-6"><div class="flex-1 h-14 bg-indigo-200 rounded-2xl"></div><div class="flex-1 h-14 bg-green-100 rounded-2xl"></div></div></div></div>
+        </div>
+    </div>
+</div>
 <script src="grammar.js"></script>
-<script type="text/babel" data-type="module">
+<script type="text/babel" data-type="module" data-presets="react">
 const { useState, useEffect, useCallback, useMemo, useRef } = React;
 
-const raw = RAW_GRAMMAR_DATA;
-
-const initialGrammarData = raw.map(d => ({id:d[0], zh:d[1], ja:d[2], exJa:d[3], exZh:d[4], conn:d[5]}));
-
 const STORAGE_KEY = 'n1_grammar_mastered_ids';
+const CHAPTER_KEY = 'n1_grammar_selected_chapters';
 
-const loadMasteredIds = () => {
-    try {
-        const data = localStorage.getItem(STORAGE_KEY);
-        return data ? new Set(JSON.parse(data)) : new Set();
-    } catch { return new Set(); }
-};
+const raw = RAW_GRAMMAR_DATA;
+const ALL_DATA = raw.map(d => ({
+    id: d[0], zh: d[1], ja: d[2], exJa: d[3], exZh: d[4], conn: d[5]
+}));
 
-const saveMasteredIds = (ids) => {
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(Array.from(ids))); } catch (e) {}
-};
+// 每10个语法分为一个章节
+const CHAPTER_SIZE = 10;
+const allChapters = [];
+for (let i = 0; i < ALL_DATA.length; i += CHAPTER_SIZE) {
+    const end = Math.min(i + CHAPTER_SIZE, ALL_DATA.length);
+    const chNum = Math.floor(i / CHAPTER_SIZE) + 1;
+    allChapters.push({
+        name: `第${chNum}单元`,
+        start: i + 1,
+        end: end,
+        items: ALL_DATA.slice(i, end)
+    });
+}
 
 const renderRubyText = (text) => {
     if (!text) return null;
@@ -49,97 +68,176 @@ const renderRubyText = (text) => {
     return parts.map((part, index) => {
         const match = part.match(/^\{([^|]+)\|([^}]+)\}$/);
         if (match) {
-            return React.createElement('ruby', { key: index }, match[1],
-                React.createElement('rt', null, match[2]));
+            return <ruby key={index}>{match[1]}<rt>{match[2]}</rt></ruby>;
         }
-        return React.createElement('span', { key: index }, part);
+        return <span key={index}>{part}</span>;
     });
 };
 
+const loadMasteredIds = () => {
+    try { const data = localStorage.getItem(STORAGE_KEY); return data ? new Set(JSON.parse(data)) : new Set(); } catch { return new Set(); }
+};
+const saveMasteredIds = (ids) => { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(Array.from(ids))); } catch (e) {} };
+
+const loadSelectedChapters = () => {
+    try {
+        const data = localStorage.getItem(CHAPTER_KEY);
+        if (!data) return null;
+        return JSON.parse(data);
+    } catch { return null; }
+};
+const saveSelectedChapters = (chapters) => {
+    try { localStorage.setItem(CHAPTER_KEY, JSON.stringify(chapters)); } catch (e) {}
+};
+
 const App = () => {
-    const [cards, setCards] = useState(initialGrammarData);
+    const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;
+    const [sidebarOpen, setSidebarOpen] = useState(!isMobile);
+    const [selectedChapters, setSelectedChapters] = useState(() => {
+        const saved = loadSelectedChapters();
+        return saved || allChapters.map(c => c.name);
+    });
     const [currentIndex, setCurrentIndex] = useState(0);
     const [isFlipped, setIsFlipped] = useState(false);
     const [masteredIds, setMasteredIds] = useState(loadMasteredIds);
     const [filterMode, setFilterMode] = useState('all');
+    const [searchQuery, setSearchQuery] = useState('');
     const [toast, setToast] = useState(null);
+    const [searchOpen, setSearchOpen] = useState(false);
+    const [shuffleSeed, setShuffleSeed] = useState(0);
+    const [flipMode, setFlipMode] = useState(() => {
+        try { return localStorage.getItem('n1_flip_mode') || 'ja_zh'; } catch { return 'ja_zh'; }
+    });
+    const searchInputRef = useRef(null);
 
-    const showToast = (msg) => {
-        setToast(msg);
-        setTimeout(() => setToast(null), 2000);
+    const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(null), 2000); };
+
+    const activeChapters = useMemo(() => {
+        if (selectedChapters.length === 0) return [];
+        if (selectedChapters.length === allChapters.length) return allChapters.map(c => c.name);
+        return selectedChapters;
+    }, [selectedChapters]);
+
+    const isAllSelected = selectedChapters.length === allChapters.length;
+
+    const toggleChapter = (ch) => {
+        setSelectedChapters(prev => {
+            const newSelected = prev.includes(ch) ? prev.filter(c => c !== ch) : [...prev, ch];
+            saveSelectedChapters(newSelected);
+            return newSelected;
+        });
+        setCurrentIndex(0); setIsFlipped(false);
     };
 
-    const displayedCards = useMemo(() => {
-        if (filterMode === 'all') return cards;
-        return cards.filter(c => !masteredIds.has(c.id));
-    }, [cards, filterMode, masteredIds]);
+    const toggleAll = () => {
+        if (isAllSelected) { setSelectedChapters([]); saveSelectedChapters([]); }
+        else { setSelectedChapters(allChapters.map(c => c.name)); saveSelectedChapters(allChapters.map(c => c.name)); }
+        setCurrentIndex(0); setIsFlipped(false);
+    };
+
+    const allCards = useMemo(() => {
+        let cards = ALL_DATA;
+        if (activeChapters.length > 0 && activeChapters.length < allChapters.length) {
+            cards = cards.filter(c => {
+                const chIdx = Math.floor((c.id - 1) / CHAPTER_SIZE);
+                return activeChapters.includes(allChapters[chIdx].name);
+            });
+        }
+        return cards;
+    }, [activeChapters]);
+
+    const filteredCards = useMemo(() => {
+        let cards = allCards;
+        if (filterMode === 'learning') {
+            cards = cards.filter(c => !masteredIds.has(c.id));
+        }
+        if (searchQuery) {
+            const q = searchQuery.toLowerCase();
+            cards = cards.filter(c => 
+                c.zh.includes(q) || c.ja.includes(q) || c.exJa.includes(q) || c.conn.includes(q)
+            );
+        }
+        if (shuffleSeed > 0) {
+            cards = [...cards];
+            for (let i = cards.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [cards[i], cards[j]] = [cards[j], cards[i]];
+            }
+        }
+        return cards;
+    }, [allCards, filterMode, masteredIds, searchQuery, shuffleSeed]);
+
+    const prevFilterKey = useRef(JSON.stringify({ ch: [...selectedChapters].sort(), mode: filterMode, q: searchQuery }));
+    useEffect(() => {
+        const key = JSON.stringify({ ch: [...selectedChapters].sort(), mode: filterMode, q: searchQuery });
+        if (key !== prevFilterKey.current) { setShuffleSeed(0); }
+        prevFilterKey.current = key;
+    }, [selectedChapters, filterMode, searchQuery]);
 
     useEffect(() => {
-        if (displayedCards.length === 0) { setCurrentIndex(0); setIsFlipped(false); return; }
-        if (currentIndex >= displayedCards.length) {
-            setCurrentIndex(Math.max(0, displayedCards.length - 1));
-            setIsFlipped(false);
-        }
-    }, [displayedCards.length, currentIndex]);
+        if (filteredCards.length === 0) { setCurrentIndex(0); return; }
+        if (currentIndex >= filteredCards.length) { setCurrentIndex(Math.max(0, filteredCards.length - 1)); setIsFlipped(false); }
+    }, [filteredCards.length]);
 
     const handleFlip = useCallback(() => setIsFlipped(p => !p), []);
 
     const toggleMasterStatus = useCallback(() => {
-        if (displayedCards.length === 0) return;
-        const currentId = displayedCards[currentIndex].id;
+        if (filteredCards.length === 0) return;
+        const card = filteredCards[currentIndex];
+        if (!card) return;
         setMasteredIds(prev => {
             const s = new Set(prev);
-            s.has(currentId) ? s.delete(currentId) : s.add(currentId);
+            s.has(card.id) ? s.delete(card.id) : s.add(card.id);
             saveMasteredIds(s);
             return s;
         });
-    }, [displayedCards, currentIndex]);
+    }, [filteredCards, currentIndex]);
 
     const goPrev = useCallback(() => {
-        if (currentIndex > 0) {
-            setIsFlipped(false);
-            setTimeout(() => setCurrentIndex(p => p - 1), 150);
-        }
+        if (currentIndex > 0) { setIsFlipped(false); setTimeout(() => setCurrentIndex(p => p - 1), 150); }
     }, [currentIndex]);
 
     const goNext = useCallback(() => {
-        if (currentIndex < displayedCards.length - 1) {
-            setIsFlipped(false);
-            setTimeout(() => setCurrentIndex(p => p + 1), 150);
-        }
-    }, [currentIndex, displayedCards.length]);
+        if (currentIndex < filteredCards.length - 1) { setIsFlipped(false); setTimeout(() => setCurrentIndex(p => p + 1), 150); }
+    }, [currentIndex, filteredCards.length]);
 
     const shuffleCards = useCallback(() => {
-        const shuffled = [...cards].sort(() => Math.random() - 0.5);
-        setCards(shuffled);
+        setShuffleSeed(p => p + 1);
         setCurrentIndex(0);
         setIsFlipped(false);
         showToast('已随机打乱 ✓');
-    }, [cards]);
+    }, []);
+
+    useEffect(() => {
+        try { localStorage.setItem('n1_flip_mode', flipMode); } catch (e) {}
+    }, [flipMode]);
+
+    const actualFlipMode = useMemo(() => {
+        if (flipMode !== 'random') return flipMode;
+        if (filteredCards.length === 0) return 'ja_zh';
+        const card = filteredCards[currentIndex];
+        if (!card) return 'ja_zh';
+        const modes = ['ja_zh', 'zh_ja', 'conn_ex'];
+        const hash = String(card.id).split('').reduce((a, c) => a + c.charCodeAt(0), 0);
+        return modes[hash % 3];
+    }, [flipMode, filteredCards, currentIndex]);
 
     const resetProgress = useCallback(() => {
         if (window.confirm("确定要清空所有已掌握记录吗？")) {
-            const empty = new Set();
-            setMasteredIds(empty); saveMasteredIds(empty);
-            setFilterMode('all'); setCurrentIndex(0); setIsFlipped(false);
-            showToast('进度已清空');
+            const empty = new Set(); setMasteredIds(empty); saveMasteredIds(empty); setCurrentIndex(0); setIsFlipped(false); showToast('进度已清空');
         }
     }, []);
 
-    const stateRef = useRef({ displayedCards, currentIndex });
-    stateRef.current = { displayedCards, currentIndex };
+    const stateRef = useRef({ filteredCards, currentIndex });
+    stateRef.current = { filteredCards, currentIndex };
 
     useEffect(() => {
         const handleKeyDown = (e) => {
-            const { displayedCards: dc, currentIndex: ci } = stateRef.current;
-            if (dc.length === 0) return;
+            const { filteredCards: fc, currentIndex: ci } = stateRef.current;
+            if (fc.length === 0) return;
             if (e.code === 'Space') { e.preventDefault(); setIsFlipped(p => !p); }
-            else if (e.code === 'ArrowLeft') {
-                if (ci > 0) { setIsFlipped(false); setTimeout(() => setCurrentIndex(p => p - 1), 150); }
-            }
-            else if (e.code === 'ArrowRight') {
-                if (ci < dc.length - 1) { setIsFlipped(false); setTimeout(() => setCurrentIndex(p => p + 1), 150); }
-            }
+            else if (e.code === 'ArrowLeft') { if (ci > 0) { setIsFlipped(false); setTimeout(() => setCurrentIndex(p => p - 1), 150); } }
+            else if (e.code === 'ArrowRight') { if (ci < fc.length - 1) { setIsFlipped(false); setTimeout(() => setCurrentIndex(p => p + 1), 150); } }
             else if (e.code === 'KeyM') toggleMasterStatus();
         };
         window.addEventListener('keydown', handleKeyDown);
@@ -147,95 +245,270 @@ const App = () => {
     }, [toggleMasterStatus]);
 
     useEffect(() => {
-        const t = setTimeout(() => {
-            if (typeof lucide !== 'undefined' && lucide.createIcons) lucide.createIcons();
-        }, 100);
-        return () => clearTimeout(t);
-    });
-    useEffect(() => {
-        const t = setTimeout(() => {
-            if (typeof lucide !== 'undefined' && lucide.createIcons) lucide.createIcons();
-        }, 200);
-        return () => clearTimeout(t);
-    }, [currentIndex, isFlipped, filterMode, displayedCards.length]);
+        const sk = document.getElementById('skeleton');
+        if (sk) sk.remove();
+    }, []);
 
-    const currentCard = displayedCards.length > 0 ? displayedCards[currentIndex] : null;
+    useEffect(() => {
+        const t = setTimeout(() => { if (typeof lucide !== 'undefined' && lucide.createIcons) lucide.createIcons(); }, 200);
+        return () => clearTimeout(t);
+    }, [currentIndex, isFlipped, filterMode, filteredCards.length, sidebarOpen]);
+
+    const currentCard = filteredCards.length > 0 ? filteredCards[currentIndex] : null;
     const isCurrentMastered = currentCard ? masteredIds.has(currentCard.id) : false;
-    const progressPercent = Math.round((masteredIds.size / initialGrammarData.length) * 100);
+    
+    const getChapterName = (id) => {
+        const chIdx = Math.floor((id - 1) / CHAPTER_SIZE);
+        return allChapters[chIdx]?.name || '';
+    };
+
+    const cardFront = useMemo(() => {
+        if (!currentCard) return null;
+        const c = currentCard;
+        switch (actualFlipMode) {
+            case 'ja_zh':
+                return { label: '日文句型', content: c.ja, hint: '点击查看中文及接续' };
+            case 'zh_ja':
+                return { label: '中文含义', content: c.zh, hint: '点击查看日文句型' };
+            case 'conn_ex':
+                return { label: '接续规则', content: c.conn, hint: '点击查看例句用法' };
+            default:
+                return { label: 'N1 语法', content: c.ja, hint: '点击查看释义' };
+        }
+    }, [currentCard, actualFlipMode]);
+
+    const cardBack = useMemo(() => {
+        if (!currentCard) return null;
+        const c = currentCard;
+        switch (actualFlipMode) {
+            case 'ja_zh':
+                return { zh: c.zh, ja: c.ja, conn: c.conn, exJa: c.exJa, exZh: c.exZh };
+            case 'zh_ja':
+                return { zh: null, ja: c.ja, conn: c.conn, exJa: c.exJa, exZh: c.exZh, extra: c.zh };
+            case 'conn_ex':
+                return { zh: c.zh, ja: c.ja, conn: null, exJa: c.exJa, exZh: c.exZh, extra: c.conn };
+            default:
+                return { zh: c.zh, ja: c.ja, conn: c.conn, exJa: c.exJa, exZh: c.exZh };
+        }
+    }, [currentCard, actualFlipMode]);
+
+    const masteredInFilter = allCards.filter(c => masteredIds.has(c.id)).length;
+    const totalInFilter = allCards.length;
+    const progressPercent = totalInFilter > 0 ? Math.round((masteredInFilter / totalInFilter) * 100) : 0;
+
+    const chapterStats = useMemo(() => {
+        return allChapters.map(ch => {
+            const total = ch.items.length;
+            const mastered = ch.items.filter(c => masteredIds.has(c.id)).length;
+            return { name: ch.name, total, mastered };
+        });
+    }, [masteredIds]);
 
     return (
-        <div className="flex-1 flex flex-col items-center p-4 max-w-lg mx-auto w-full h-full safe-area-inset relative">
-            {toast && (
-                <div className="fixed top-8 left-1/2 -translate-x-1/2 z-50 bg-gray-800 text-white px-4 py-2 rounded-full text-sm shadow-lg fade-in">{toast}</div>
-            )}
-            <header className="w-full mb-4">
-                <div className="flex justify-between items-center mb-2">
-                    <h1 className="text-xl font-bold text-gray-800 flex items-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" className="w-5 h-5 mr-1 text-indigo-600"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
-                        N1语法特训(205)
-                        <span className="ml-2 text-xs flex items-center text-green-500 font-normal">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" className="w-4 h-4 mr-1"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/><path d="M10 6h4"/><path d="M10 10h4"/><path d="M10 14h4"/><path d="M10 18h4"/></svg>
-                            本地已保存
-                        </span>
-                    </h1>
-                    <div className="flex bg-white rounded-lg p-1 border border-gray-200 shadow-sm">
-                        <button onClick={() => { setFilterMode('learning'); setCurrentIndex(0); setIsFlipped(false); }} className={`px-3 py-1 text-xs font-bold rounded ${filterMode === 'learning' ? 'bg-indigo-50 text-indigo-600' : 'text-gray-400'}`}>仅生疏</button>
-                        <button onClick={() => { setFilterMode('all'); setCurrentIndex(0); setIsFlipped(false); }} className={`px-3 py-1 text-xs font-bold rounded ${filterMode === 'all' ? 'bg-indigo-50 text-indigo-600' : 'text-gray-400'}`}>全部</button>
-                    </div>
+        <div className="flex h-full w-full">
+            {toast && <div className="fixed top-8 left-1/2 -translate-x-1/2 z-50 bg-gray-800 text-white px-4 py-2 rounded-full text-sm shadow-lg fade-in">{toast}</div>}
+
+            {/* 移动端侧边栏遮罩 */}
+            {sidebarOpen && <div className="fixed inset-0 bg-black/30 z-30 md:hidden" onClick={() => setSidebarOpen(false)}></div>}
+
+            {/* Sidebar */}
+            <div className={`
+                ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+                md:translate-x-0 md:w-64 md:${sidebarOpen ? '' : 'w-0'}
+                fixed md:relative z-40 h-full w-72 bg-white border-r border-gray-200 flex-shrink-0 transition-transform duration-200 flex flex-col
+                ${!sidebarOpen ? 'md:overflow-hidden md:w-0' : ''}
+            `}>
+                <div className="p-4 border-b border-gray-100">
+                    <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-indigo-600"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+                        N1语法特训
+                    </h2>
+                    <p className="text-xs text-gray-400 mt-1">共 {ALL_DATA.length} 条 · {allChapters.length} 单元</p>
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-1.5"><div className="bg-indigo-500 h-1.5 rounded-full transition-all" style={{ width: `${progressPercent}%` }} /></div>
-            </header>
 
-            {displayedCards.length > 0 && currentCard ? (
-                <>
-                    <div className="w-full flex justify-between px-1 mb-2 items-center">
-                        <span className="text-xs font-medium text-gray-400">No.{currentCard.id} ({currentIndex + 1}/{displayedCards.length})</span>
-                        <button onClick={shuffleCards} className="text-gray-400 hover:text-indigo-500 p-1"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><path d="M7.5 4.21 12 6.81l4.5-2.6"/><path d="M21 16v2a2 2 0 0 1-1 1.73l-7 4a2 2 0 0 1-2 0l-7-4A2 2 0 0 1 3 18v-2"/></svg></button>
+                <div className="px-3 py-2 border-b border-gray-100 flex items-center justify-between">
+                    <button onClick={toggleAll} className="text-xs font-medium text-indigo-600 hover:text-indigo-800 flex items-center gap-1">
+                        <span className={`inline-flex items-center justify-center w-4 h-4 rounded border ${isAllSelected ? 'bg-indigo-600 border-indigo-600 text-white' : 'border-gray-300 bg-white'}`}>
+                            {isAllSelected && <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M20 6L9 17l-5-5"/></svg>}
+                        </span>
+                        {isAllSelected ? '全选' : `已选 ${selectedChapters.length}/${allChapters.length}`}
+                    </button>
+                </div>
+
+                <div className="flex-1 overflow-y-auto no-scrollbar p-2">
+                    {chapterStats.map((cs, i) => {
+                        const isChecked = selectedChapters.includes(cs.name);
+                        return (
+                            <button key={i} onClick={() => toggleChapter(cs.name)} className={`sidebar-item w-full text-left px-3 py-2 rounded-lg text-sm mb-1 ${isChecked ? 'active' : 'text-gray-600'}`}>
+                                <div className="flex items-center gap-2">
+                                    <span className={`inline-flex items-center justify-center w-4 h-4 rounded border flex-shrink-0 ${isChecked ? 'bg-indigo-600 border-indigo-600 text-white' : 'border-gray-300 bg-white'}`}>
+                                        {isChecked && <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M20 6L9 17l-5-5"/></svg>}
+                                    </span>
+                                    <span className="truncate">{cs.name}</span>
+                                    <span className="text-xs text-gray-400 ml-auto">{cs.total}条</span>
+                                </div>
+                                {cs.mastered > 0 && <div className="w-full bg-gray-200 rounded-full h-1 mt-1"><div className="bg-green-400 h-1 rounded-full transition-all" style={{ width: `${Math.round(cs.mastered/cs.total*100)}%` }} /></div>}
+                            </button>
+                        );
+                    })}
+                </div>
+            </div>
+
+            {/* Main content */}
+            <div className="flex-1 flex flex-col min-w-0 relative">
+                <header className="p-3 sm:p-4 pb-2 bg-white border-b border-gray-100">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 min-w-0">
+                            <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 shrink-0">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg>
+                            </button>
+                            <h1 className="text-sm sm:text-base font-bold text-gray-800 truncate">
+                                {isAllSelected ? 'N1语法特训' : `已选${selectedChapters.length}单元`}
+                            </h1>
+                        </div>
+                        <div className="flex items-center gap-1 shrink-0">
+                            <div className="relative">
+                                <button onClick={() => { setSearchOpen(!searchOpen); setTimeout(() => searchInputRef.current?.focus(), 100); }} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                                </button>
+                                {searchOpen && <input ref={searchInputRef} type="text" value={searchQuery} onChange={e => { setSearchQuery(e.target.value); setCurrentIndex(0); setIsFlipped(false); }} placeholder="搜索语法/接续/例句..." className="absolute right-0 top-8 w-44 sm:w-56 px-3 py-1.5 text-sm border border-gray-200 rounded-lg shadow-lg bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300 fade-in z-50" />}
+                            </div>
+                            <a href="../" className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-indigo-600 transition-colors" title="返回主页">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+                            </a>
+                        </div>
                     </div>
+                    <div className="flex items-center gap-2 mt-2">
+                        <div className="flex-1 bg-gray-100 rounded-full h-1.5"><div className="bg-indigo-500 h-1.5 rounded-full transition-all" style={{ width: `${progressPercent}%` }} /></div>
+                        <span className="text-xs text-gray-400 whitespace-nowrap shrink-0">{masteredInFilter}/{totalInFilter}</span>
+                    </div>
+                </header>
 
-                    <div className="w-full flex-1 min-h-[22rem] max-h-[30rem] perspective-1000 mb-6 cursor-pointer" onClick={handleFlip}>
-                        <div className={`relative w-full h-full card-transition transform-style-3d ${isFlipped ? 'rotate-y-180' : ''}`}>
-                            <div className={`absolute w-full h-full backface-hidden bg-white rounded-3xl shadow-lg border-2 flex flex-col items-center justify-center p-6 text-center ${isCurrentMastered ? 'border-green-400' : 'border-transparent'}`}>
-                                {isCurrentMastered && <div className="absolute top-4 right-4 bg-green-50 text-green-500 px-2 py-1 rounded-full text-xs font-bold flex items-center"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" className="w-3 h-3 mr-1"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> 已掌握</div>}
-                                <span className="text-xs font-bold text-gray-300 uppercase mb-4 tracking-widest">N1 语法</span>
-                                <h2 className="text-4xl font-bold text-gray-800 leading-snug px-2">{currentCard.ja}</h2>
-                                <div className="absolute bottom-5 text-xs text-indigo-400 bg-indigo-50 px-4 py-2 rounded-full animate-pulse flex items-center"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" className="w-3 h-3 mr-1"><path d="M7 8l5 13L7 8z"/><path d="M17 8l-5 13L17 8z"/><path d="M12 3v18"/></svg> 点击翻看中文及接续</div>
+                <div className="flex-1 flex flex-col min-h-0">
+                    {selectedChapters.length === 0 ? (
+                        <div className="flex-1 flex items-center justify-center p-4">
+                            <div className="w-full max-w-lg bg-white rounded-3xl p-6 sm:p-8 text-center shadow-sm border border-gray-100 flex flex-col items-center justify-center">
+                                <div className="w-16 h-16 sm:w-20 sm:h-20 bg-indigo-50 rounded-full flex items-center justify-center mb-4"><svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-indigo-500"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></div>
+                                <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-2">请先选择单元</h2>
+                                <p className="text-gray-500 mb-6 text-sm">点击左侧菜单勾选要学习的单元</p>
+                                <button onClick={() => { setSelectedChapters(allChapters.map(c => c.name)); saveSelectedChapters(allChapters.map(c => c.name)); setCurrentIndex(0); setIsFlipped(false); }} className="w-full bg-indigo-600 text-white py-3 rounded-2xl font-bold active:scale-95 transition-transform">选择全部 {allChapters.length} 单元</button>
+                            </div>
+                        </div>
+                    ) : filteredCards.length > 0 && currentCard ? (
+                        <div className="flex-1 flex flex-col min-h-0 px-1">
+                            {/* 顶部信息区 */}
+                            <div className="flex-shrink-0 pt-3 sm:pt-4 pb-2">
+                                <div className="w-full max-w-lg mx-auto flex justify-between items-center mb-2">
+                                    <span className="text-xs text-gray-400 truncate">{getChapterName(currentCard.id)} · No.{currentCard.id} ({currentIndex + 1}/{filteredCards.length})</span>
+                                    <button onClick={shuffleCards} className="text-gray-400 hover:text-indigo-500 p-1 shrink-0" title="随机打乱"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><path d="M7.5 4.21 12 6.81l4.5-2.6"/><path d="M21 16v2a2 2 0 0 1-1 1.73l-7 4a2 2 0 0 1-2 0l-7-4A2 2 0 0 1 3 18v-2"/></svg></button>
+                                </div>
+                                <div className="w-full max-w-lg mx-auto">
+                                    <div className="flex items-center gap-1.5">
+                                        <div className="flex bg-gray-50 rounded-lg p-0.5 border border-gray-200 flex-1">
+                                            <button onClick={() => { setFilterMode('learning'); setCurrentIndex(0); setIsFlipped(false); }} className={`flex-1 py-1.5 text-xs font-medium rounded transition-colors ${filterMode === 'learning' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-400'}`}>仅生疏</button>
+                                            <button onClick={() => { setFilterMode('all'); setCurrentIndex(0); setIsFlipped(false); }} className={`flex-1 py-1.5 text-xs font-medium rounded transition-colors ${filterMode === 'all' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-400'}`}>全部</button>
+                                        </div>
+                                        <div className="flex bg-gray-50 rounded-lg p-0.5 border border-gray-200 flex-1">
+                                            <button onClick={() => { setFlipMode('ja_zh'); setCurrentIndex(0); setIsFlipped(false); }} className={`flex-1 py-1.5 text-xs font-medium rounded transition-colors ${flipMode === 'ja_zh' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-400'}`}>日→中</button>
+                                            <button onClick={() => { setFlipMode('zh_ja'); setCurrentIndex(0); setIsFlipped(false); }} className={`flex-1 py-1.5 text-xs font-medium rounded transition-colors ${flipMode === 'zh_ja' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-400'}`}>中→日</button>
+                                            <button onClick={() => { setFlipMode('conn_ex'); setCurrentIndex(0); setIsFlipped(false); }} className={`flex-1 py-1.5 text-xs font-medium rounded transition-colors ${flipMode === 'conn_ex' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-400'}`}>接→用</button>
+                                            <button onClick={() => { setFlipMode('random'); setCurrentIndex(0); setIsFlipped(false); }} className={`flex-1 py-1.5 text-xs font-medium rounded transition-colors ${flipMode === 'random' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-400'}`}>🎲</button>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
 
-                            <div className="absolute w-full h-full backface-hidden rotate-y-180 bg-[#312e81] rounded-3xl shadow-lg border border-indigo-800 flex flex-col items-center justify-center p-6 text-center text-white overflow-y-auto no-scrollbar">
-                                <div className="w-full mt-auto mb-auto">
-                                    <span className="text-xs font-bold text-indigo-300/70 uppercase mb-1 block tracking-widest">中文含义</span>
-                                    <h2 className="text-2xl font-bold leading-relaxed mb-4 text-indigo-50">{currentCard.zh}</h2>
-                                    <div className="text-left bg-white/10 p-5 rounded-2xl backdrop-blur-sm border border-white/10 shadow-inner">
-                                        {currentCard.conn && <div className="mb-4 pb-4 border-b border-indigo-300/20"><div className="flex items-center text-indigo-200 text-xs font-bold mb-2"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" className="w-3.5 h-3.5 mr-1.5 text-pink-300"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg> 【接续规则】</div><p className="text-[1.05rem] font-medium text-pink-100 tracking-wide leading-relaxed">{currentCard.conn}</p></div>}
-                                        <div className="flex items-center text-indigo-200 text-xs font-bold mb-3"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" className="w-3.5 h-3.5 mr-1.5 text-blue-300"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> 【例句用法】</div>
-                                        <p className="text-[1.15rem] font-medium mb-2 leading-loose tracking-wide">{renderRubyText(currentCard.exJa)}</p>
-                                        <p className="text-sm text-indigo-100/80 leading-relaxed border-t border-indigo-300/20 pt-3">{currentCard.exZh}</p>
+                            {/* 卡片区域 */}
+                            <div className="flex-1 flex items-center justify-center min-h-0 pb-2">
+                                <div className="w-full max-w-lg aspect-[3/4] max-h-full perspective-1000 cursor-pointer" onClick={handleFlip}>
+                                    <div className={`relative w-full h-full card-transition transform-style-3d ${isFlipped ? 'rotate-y-180' : ''}`}>
+                                        {/* 正面 */}
+                                        <div className={`absolute w-full h-full backface-hidden bg-white rounded-3xl shadow-lg border-2 flex flex-col items-center justify-center p-6 sm:p-8 text-center ${isCurrentMastered ? 'border-green-400' : 'border-transparent'}`}>
+                                            {isCurrentMastered && <div className="absolute top-3 right-3 sm:top-4 sm:right-4 bg-green-50 text-green-500 px-2 py-1 rounded-full text-xs font-bold flex items-center"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> 已掌握</div>}
+                                            <span className="text-xs font-bold text-gray-300 uppercase mb-3 sm:mb-4 tracking-widest">{cardFront.label}</span>
+                                            <h2 className="text-3xl sm:text-4xl font-bold text-gray-800 leading-snug mb-3">{cardFront.content}</h2>
+                                            <div className="absolute bottom-4 sm:bottom-5 text-xs text-indigo-400 bg-indigo-50 px-3 py-1.5 sm:px-4 sm:py-2 rounded-full animate-pulse flex items-center"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1"><path d="M7 8l5 13L7 8z"/><path d="M17 8l-5 13L17 8z"/><path d="M12 3v18"/></svg> {cardFront.hint}</div>
+                                        </div>
+
+                                        {/* 背面 */}
+                                        <div className="absolute w-full h-full backface-hidden rotate-y-180 bg-gradient-to-br from-indigo-900 to-purple-900 rounded-3xl shadow-lg border border-indigo-700 flex flex-col p-4 sm:p-6 text-center text-white overflow-y-auto no-scrollbar">
+                                            <div className="w-full mt-auto mb-auto">
+                                                {cardBack.ja && (
+                                                    <div className="mb-2 sm:mb-3">
+                                                        <span className="text-xs font-bold text-indigo-300/70 uppercase mb-1 block tracking-widest">日文句型</span>
+                                                        <h2 className="text-2xl sm:text-3xl font-bold text-indigo-50">{cardBack.ja}</h2>
+                                                    </div>
+                                                )}
+                                                {cardBack.zh && (
+                                                    <div className="mb-2 sm:mb-3">
+                                                        <span className="text-xs font-bold text-indigo-300/70 uppercase mb-1 block tracking-widest">中文含义</span>
+                                                        <h2 className="text-xl sm:text-2xl font-bold leading-relaxed text-indigo-50">{cardBack.zh}</h2>
+                                                    </div>
+                                                )}
+                                                {cardBack.extra && (
+                                                    <div className="mb-2 sm:mb-3 bg-white/10 p-3 sm:p-4 rounded-2xl backdrop-blur-sm border border-white/10">
+                                                        <span className="text-xs font-bold text-indigo-300/70 uppercase mb-2 block tracking-widest">额外信息</span>
+                                                        <p className="text-base sm:text-lg leading-relaxed text-indigo-100">{cardBack.extra}</p>
+                                                    </div>
+                                                )}
+                                                <div className="text-left bg-white/10 p-3 sm:p-4 rounded-2xl backdrop-blur-sm border border-white/10">
+                                                    {cardBack.conn && (
+                                                        <div className="mb-3 sm:mb-4 pb-2 sm:pb-3 border-b border-indigo-300/20">
+                                                            <div className="flex items-center text-indigo-200 text-xs font-bold mb-2"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1.5 text-pink-300"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg> 【接续规则】</div>
+                                                            <p className="text-sm sm:text-base font-medium text-pink-100 tracking-wide leading-relaxed">{cardBack.conn}</p>
+                                                        </div>
+                                                    )}
+                                                    {cardBack.exJa && (
+                                                        <div className="mb-3 sm:mb-4 pb-2 sm:pb-3 border-b border-indigo-300/20">
+                                                            <div className="flex items-center text-indigo-200 text-xs font-bold mb-2"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1.5 text-blue-300"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> 【例句】</div>
+                                                            <p className="text-sm sm:text-[1.05rem] font-medium text-blue-100 tracking-wide leading-relaxed mb-1.5">{renderRubyText(cardBack.exJa)}</p>
+                                                            {cardBack.exZh && <p className="text-xs sm:text-sm text-indigo-200/80 leading-relaxed">{cardBack.exZh}</p>}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* 底部按钮 */}
+                            <div className="flex-shrink-0 pb-3 sm:pb-4">
+                                <div className="w-full max-w-lg mx-auto flex flex-col gap-2 sm:gap-3">
+                                    <div className="flex gap-2 sm:gap-3">
+                                        <button onClick={goNext} className="flex-1 bg-indigo-600 text-white rounded-2xl font-bold text-base sm:text-lg flex items-center justify-center shadow-md shadow-indigo-600/20 active:scale-95 transition-transform h-12 sm:h-14">下一个 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="ml-1"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></button>
+                                        <button onClick={toggleMasterStatus} className={`flex-1 rounded-2xl font-bold text-sm sm:text-base flex items-center justify-center shadow-sm active:scale-95 transition-transform border-2 h-12 sm:h-14 ${isCurrentMastered ? 'bg-white border-gray-200 text-gray-400' : 'bg-green-50 border-green-100 text-green-600'}`}>{isCurrentMastered ? '标为生疏' : '已掌握'}</button>
+                                    </div>
+                                    <div className="flex justify-between items-center px-1 sm:px-2">
+                                        <button onClick={goPrev} disabled={currentIndex === 0} className={`flex items-center text-xs sm:text-sm font-medium py-2 px-3 sm:px-4 rounded-full ${currentIndex === 0 ? 'text-gray-300 cursor-not-allowed' : 'text-gray-500 hover:bg-gray-100'}`}><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1"><path d="m15 18-6-6 6-6"/></svg> 上一个</button>
+                                        <button onClick={resetProgress} className="text-xs text-gray-300 hover:text-red-400 py-2 transition-colors">清空进度</button>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
-
-                    <div className="w-full flex flex-col gap-3 pb-4">
-                        <div className="flex gap-3 h-16">
-                            <button onClick={goNext} className="flex-1 bg-indigo-600 text-white rounded-2xl font-bold text-lg flex items-center justify-center shadow-md shadow-indigo-600/20 active:scale-95 transition-transform">下一张 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" className="w-6 h-6 ml-1"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></button>
-                            <button onClick={toggleMasterStatus} className={`flex-1 rounded-2xl font-bold flex items-center justify-center shadow-sm active:scale-95 transition-transform border-2 ${isCurrentMastered ? 'bg-white border-gray-200 text-gray-400' : 'bg-green-50 border-green-100 text-green-600'}`}>{isCurrentMastered ? '标为生疏' : '已掌握'}</button>
+                    ) : masteredInFilter === totalInFilter && totalInFilter > 0 ? (
+                        <div className="flex-1 flex items-center justify-center p-4">
+                            <div className="w-full max-w-lg bg-white rounded-3xl p-6 sm:p-8 text-center shadow-sm border border-gray-100 flex flex-col items-center justify-center">
+                                <div className="w-16 h-16 sm:w-20 sm:h-20 bg-green-50 rounded-full flex items-center justify-center mb-4"><svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-green-500"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div>
+                                <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-2">太棒了！</h2>
+                                <p className="text-gray-500 mb-6 text-sm">已选单元的 {totalInFilter} 条语法全部掌握</p>
+                                <button onClick={() => { setFilterMode('all'); setCurrentIndex(0); setIsFlipped(false); }} className="w-full bg-gray-100 text-gray-600 py-3 rounded-2xl font-bold active:scale-95 transition-transform">重新复习</button>
+                            </div>
                         </div>
-                        <div className="flex justify-between items-center px-4">
-                            <button onClick={goPrev} disabled={currentIndex === 0} className={`flex items-center text-sm font-medium py-2 px-4 rounded-full ${currentIndex === 0 ? 'text-gray-300 cursor-not-allowed' : 'text-gray-500 hover:bg-gray-100 active:bg-gray-200'}`}><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" className="w-4 h-4 mr-1"><path d="m15 18-6-6 6-6"/></svg> 上一张</button>
-                            <button onClick={resetProgress} className="text-xs text-gray-300 hover:text-red-400 py-2 transition-colors">清空进度</button>
+                    ) : (
+                        <div className="flex-1 flex items-center justify-center p-4">
+                            <div className="w-full max-w-lg bg-white rounded-3xl p-6 sm:p-8 text-center shadow-sm border border-gray-100 flex flex-col items-center justify-center">
+                                <div className="w-16 h-16 sm:w-20 sm:h-20 bg-amber-50 rounded-full flex items-center justify-center mb-4"><svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-amber-500"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg></div>
+                                <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-2">没有匹配的语法</h2>
+                                <p className="text-gray-500 mb-6 text-sm">当前筛选条件下没有找到语法</p>
+                                <button onClick={() => { setFilterMode('all'); setSearchQuery(''); setCurrentIndex(0); setIsFlipped(false); }} className="w-full bg-indigo-600 text-white py-3 rounded-2xl font-bold active:scale-95 transition-transform">重置筛选</button>
+                            </div>
                         </div>
-                    </div>
-                </>
-            ) : (
-                <div className="w-full flex-1 bg-white rounded-3xl p-8 text-center shadow-sm border border-gray-100 flex flex-col items-center justify-center mb-6">
-                    <div className="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center mb-4"><svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" className="w-10 h-10 text-green-500"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></div>
-                    <h2 className="text-2xl font-bold text-gray-800 mb-2">太棒了！</h2>
-                    <p className="text-gray-500 mb-8 text-sm leading-relaxed">当前模式下的语法已全部掌握<br/>准备好迎接真正的考试了吗？</p>
-                    <button onClick={() => { setFilterMode('all'); setCurrentIndex(0); setIsFlipped(false); }} className="w-full bg-indigo-600 text-white py-4 rounded-2xl font-bold active:scale-95 transition-transform">重新复习全部</button>
+                    )}
                 </div>
-            )}
+
+                <div className="px-4 py-2 text-center text-xs text-gray-300 border-t border-gray-100 hidden sm:block">← → 切换 · 空格 翻转 · M 标记掌握</div>
+            </div>
         </div>
     );
 };
