@@ -231,7 +231,7 @@ const App = () => {
             case 'meaning_kanji':
                 return { meaning: null, word: c.word, reading: c.reading, extra: c.meaning };
             case 'reading_meaning':
-                return { meaning: c.meaning, word: c.word, reading: null, extra: null };
+                return { meaning: c.meaning, word: c.word, reading: c.reading, extra: null };
             default:
                 return { meaning: c.meaning, word: c.word, reading: c.reading, extra: null };
         }
