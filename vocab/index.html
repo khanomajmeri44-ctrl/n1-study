@@ -4,13 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>N1真题词汇翻翻卡</title>
-<link rel="preload" href="vocab.js?v=3" as="script">
-<link rel="preload" href="https://unpkg.com/react@18/umd/react.production.min.js?v=3" as="script" crossorigin>
-<link rel="preload" href="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js?v=3" as="script" crossorigin>
+<link rel="preload" href="vocab.js" as="script">
+<link rel="preload" href="https://unpkg.com/react@18/umd/react.production.min.js" as="script" crossorigin>
+<link rel="preload" href="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" as="script" crossorigin>
 <script src="https://cdn.tailwindcss.com"></script>
-<script src="https://unpkg.com/react@18/umd/react.production.min.js?v=3" crossorigin></script>
-<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js?v=3" crossorigin></script>
-<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js?v=3"></script>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js" defer></script>
 <style>
 .perspective-1000{perspective:1000px}.transform-style-3d{transform-style:preserve-3d}.backface-hidden{backface-visibility:hidden}.rotate-y-180{transform:rotateY(180deg)}.card-transition{transition:transform 0.5s cubic-bezier(0.4,0.2,0.2,1)}
@@ -19,27 +19,67 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
 .sidebar-item{transition: all 0.15s ease}.sidebar-item:hover{background: #f1f5f9}.sidebar-item.active{background: #e0e7ff; color: #4f46e5; font-weight: 600}
 @keyframes fadeIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}.fade-in{animation: fadeIn 0.2s ease-out}
 @keyframes slideIn{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:translateX(0)}}.slide-in{animation: slideIn 0.15s ease-out}
+@media (max-width: 640px) {
+    .card-word { font-size: 2rem !important; }
+    .card-reading { font-size: 1.25rem !important; }
+    .card-label { font-size: 0.7rem !important; }
+    .card-hint { font-size: 0.65rem !important; padding: 0.35rem 0.75rem !important; }
+    .btn-next { font-size: 1rem !important; height: 2.75rem !important; }
+    .btn-master { font-size: 0.85rem !important; height: 2.75rem !important; }
+    .header-title { font-size: 0.9rem !important; }
+    .header-btn { padding: 0.25rem 0.5rem !important; font-size: 0.65rem !important; }
+    .card-container { max-height: 24rem !important; }
+    .sidebar-overlay { display: none; }
+    .sidebar-overlay.active { display: block; }
+}
 </style>
 </head>
 <body class="text-gray-800 h-screen overflow-hidden flex selection:bg-purple-200">
 <div id="root" class="h-full w-full flex">
-    <div id="loading" class="flex-1 flex flex-col items-center justify-center bg-gradient-to-br from-purple-50 to-indigo-50">
-        <div class="w-16 h-16 border-4 border-purple-200 border-t-purple-600 rounded-full animate-spin mb-4"></div>
-        <p class="text-gray-500 text-sm">正在加载词库...</p>
+    <!-- 骨架屏：立即显示，不等 React -->
+    <div id="skeleton" class="flex h-full w-full">
+        <!-- 侧边栏骨架 -->
+        <div class="hidden md:flex w-64 bg-white border-r border-gray-200 flex-shrink-0 flex-col">
+            <div class="p-4 border-b border-gray-100 animate-pulse">
+                <div class="h-5 bg-gray-200 rounded w-28 mb-2"></div>
+                <div class="h-3 bg-gray-100 rounded w-20"></div>
+            </div>
+            <div class="p-2 space-y-2 animate-pulse">
+                <div class="h-6 bg-gray-100 rounded"></div>
+                <div class="h-6 bg-gray-100 rounded"></div>
+                <div class="h-6 bg-gray-100 rounded"></div>
+                <div class="h-6 bg-gray-100 rounded"></div>
+                <div class="h-6 bg-gray-100 rounded"></div>
+            </div>
+        </div>
+        <!-- 主内容骨架 -->
+        <div class="flex-1 flex flex-col min-w-0">
+            <div class="p-4 pb-2 bg-white border-b border-gray-100 animate-pulse">
+                <div class="flex items-center justify-between mb-2">
+                    <div class="h-5 bg-gray-200 rounded w-32"></div>
+                    <div class="h-7 bg-gray-100 rounded w-48"></div>
+                </div>
+                <div class="h-2 bg-gray-100 rounded-full w-full"></div>
+            </div>
+            <div class="flex-1 flex items-center justify-center p-4">
+                <div class="w-full max-w-lg animate-pulse">
+                    <div class="h-4 bg-gray-100 rounded w-48 mb-3"></div>
+                    <div class="aspect-[3/4] bg-white rounded-3xl border-2 border-gray-100 shadow-sm flex flex-col items-center justify-center p-8">
+                        <div class="h-3 bg-gray-200 rounded w-16 mb-6"></div>
+                        <div class="h-12 bg-gray-200 rounded w-32 mb-4"></div>
+                        <div class="h-8 bg-gray-100 rounded w-24"></div>
+                    </div>
+                    <div class="flex gap-3 mt-6">
+                        <div class="flex-1 h-14 bg-purple-200 rounded-2xl"></div>
+                        <div class="flex-1 h-14 bg-green-100 rounded-2xl"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
-<script src="vocab.js?v=3"></script>
+<script src="vocab.js"></script>
 <script type="text/babel" data-type="module" data-presets="react">
-// Remove loading indicator once React is ready
-const loadingEl = document.getElementById('loading');
-if (loadingEl) loadingEl.remove();
-
-if (typeof VOCAB_DATA === 'undefined') {
-    document.getElementById('root').innerHTML = '<div style="padding:20px;color:red;background:#fff;margin:20px;border-radius:8px;"><h2>vocab.js 未加载</h2><p>请检查网络或刷新页面。</p></div>';
-} else {
-    console.log('vocab.js loaded, entries:', VOCAB_DATA.length);
-}
-
 const { useState, useEffect, useCallback, useMemo, useRef } = React;
 
 const STORAGE_KEY = 'n1_vocab_mastered_ids';
@@ -53,7 +93,7 @@ const saveMasteredIds = (ids) => { try { localStorage.setItem(STORAGE_KEY, JSON.
 const loadSelectedChapters = () => {
     try {
         const data = localStorage.getItem(CHAPTER_KEY);
-        if (!data) return null; // null means "all" (first load)
+        if (!data) return null;
         return JSON.parse(data);
     } catch { return null; }
 };
@@ -61,13 +101,18 @@ const saveSelectedChapters = (chapters) => {
     try { localStorage.setItem(CHAPTER_KEY, JSON.stringify(chapters)); } catch (e) {}
 };
 
+if (typeof VOCAB_DATA === 'undefined') {
+    document.getElementById('root').innerHTML = '<div style="padding:20px;color:red;background:#fff;margin:20px;border-radius:8px;"><h2>vocab.js 未加载</h2><p>请检查网络或刷新页面。</p></div>';
+}
+
 const allChapters = [...new Set(VOCAB_DATA.map(v => v.chapter))];
 
 const App = () => {
-    const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth > 768);
+    const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;
+    const [sidebarOpen, setSidebarOpen] = useState(!isMobile);
     const [selectedChapters, setSelectedChapters] = useState(() => {
         const saved = loadSelectedChapters();
-        return saved || allChapters; // default: all selected
+        return saved || allChapters;
     });
     const [currentIndex, setCurrentIndex] = useState(0);
     const [isFlipped, setIsFlipped] = useState(false);
@@ -84,7 +129,6 @@ const App = () => {
 
     const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(null), 2000); };
 
-    // Determine active chapters: if 'all' pseudo-chapter is active, show all
     const activeChapters = useMemo(() => {
         if (selectedChapters.length === 0) return [];
         if (selectedChapters.length === allChapters.length) return allChapters;
@@ -103,13 +147,8 @@ const App = () => {
     };
 
     const toggleAll = () => {
-        if (isAllSelected) {
-            setSelectedChapters([]);
-            saveSelectedChapters([]);
-        } else {
-            setSelectedChapters([...allChapters]);
-            saveSelectedChapters([...allChapters]);
-        }
+        if (isAllSelected) { setSelectedChapters([]); saveSelectedChapters([]); }
+        else { setSelectedChapters([...allChapters]); saveSelectedChapters([...allChapters]); }
         setCurrentIndex(0); setIsFlipped(false);
     };
 
@@ -125,7 +164,6 @@ const App = () => {
             const q = searchQuery.toLowerCase();
             cards = cards.filter(c => c.word.includes(q) || c.reading.includes(q) || c.meaning.includes(q) || c.chapter.includes(q));
         }
-        // Apply shuffle when shuffleSeed changes
         if (shuffleSeed > 0) {
             cards = [...cards];
             for (let i = cards.length - 1; i > 0; i--) {
@@ -136,7 +174,6 @@ const App = () => {
         return cards;
     }, [activeChapters, filterMode, masteredIds, searchQuery, shuffleSeed]);
 
-    // Reset shuffle when filters change
     const prevFilterKey = useRef(JSON.stringify({ ch: [...selectedChapters].sort(), mode: filterMode, q: searchQuery }));
     useEffect(() => {
         const key = JSON.stringify({ ch: [...selectedChapters].sort(), mode: filterMode, q: searchQuery });
@@ -178,15 +215,12 @@ const App = () => {
         showToast('已随机打乱 ✓');
     }, []);
 
-    // Flip mode persistence
     useEffect(() => {
         try { localStorage.setItem('n1_flip_mode', flipMode); } catch (e) {}
     }, [flipMode]);
 
-    // Determine actual flip mode (handle random)
     const actualFlipMode = useMemo(() => {
         if (flipMode !== 'random') return flipMode;
-        // Consistent per card: use card index to pick mode
         if (filteredCards.length === 0) return 'kanji_meaning';
         const card = filteredCards[currentIndex];
         if (!card) return 'kanji_meaning';
@@ -194,6 +228,7 @@ const App = () => {
         const hash = card.id.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
         return modes[hash % 3];
     }, [flipMode, filteredCards, currentIndex]);
+
     const resetProgress = useCallback(() => {
         if (window.confirm("确定要清空所有已掌握记录吗？")) {
             const empty = new Set(); setMasteredIds(empty); saveMasteredIds(empty); setCurrentIndex(0); setIsFlipped(false); showToast('进度已清空');
@@ -217,6 +252,12 @@ const App = () => {
     }, [toggleMasterStatus]);
 
     useEffect(() => {
+        // 移除骨架屏
+        const sk = document.getElementById('skeleton');
+        if (sk) sk.remove();
+    }, []);
+
+    useEffect(() => {
         const t = setTimeout(() => { if (typeof lucide !== 'undefined' && lucide.createIcons) lucide.createIcons(); }, 200);
         return () => clearTimeout(t);
     }, [currentIndex, isFlipped, filterMode, filteredCards.length, sidebarOpen]);
@@ -224,7 +265,6 @@ const App = () => {
     const currentCard = filteredCards.length > 0 ? filteredCards[currentIndex] : null;
     const isCurrentMastered = currentCard ? masteredIds.has(currentCard.id) : false;
     
-    // Card content based on flip mode
     const cardFront = useMemo(() => {
         if (!currentCard) return null;
         const c = currentCard;
@@ -255,13 +295,6 @@ const App = () => {
         }
     }, [currentCard, actualFlipMode]);
 
-    const flipModeLabels = {
-        kanji_meaning: '日→中',
-        meaning_kanji: '中→日',
-        reading_meaning: '音→义',
-        random: '🎲随机'
-    };
-    // Calculate progress based on ALL cards in active chapters (not just filtered view)
     const allActiveCards = useMemo(() => {
         if (activeChapters.length === allChapters.length) return VOCAB_DATA;
         return VOCAB_DATA.filter(c => activeChapters.includes(c.chapter));
@@ -282,21 +315,28 @@ const App = () => {
         <div className="flex h-full w-full">
             {toast && <div className="fixed top-8 left-1/2 -translate-x-1/2 z-50 bg-gray-800 text-white px-4 py-2 rounded-full text-sm shadow-lg fade-in">{toast}</div>}
 
-            
-            <div className={`${sidebarOpen ? 'w-64' : 'w-0'} bg-white border-r border-gray-200 flex-shrink-0 transition-all duration-200 overflow-hidden flex flex-col relative`}>
+            {/* 移动端侧边栏遮罩 */}
+            {sidebarOpen && <div className="fixed inset-0 bg-black/30 z-30 md:hidden" onClick={() => setSidebarOpen(false)}></div>}
+
+            {/* Sidebar */}
+            <div className={`
+                ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+                md:translate-x-0 md:w-64 md:${sidebarOpen ? '' : 'w-0'}
+                fixed md:relative z-40 h-full w-72 bg-white border-r border-gray-200 flex-shrink-0 transition-transform duration-200 flex flex-col
+                ${!sidebarOpen ? 'md:overflow-hidden md:w-0' : ''}
+            `}>
                 <div className="p-4 border-b border-gray-100">
                     <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" className="text-purple-600"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-purple-600"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
                         N1真题词汇
                     </h2>
                     <p className="text-xs text-gray-400 mt-1">共 {VOCAB_DATA.length} 词 · {allChapters.length} 章</p>
                 </div>
 
-                
                 <div className="px-3 py-2 border-b border-gray-100 flex items-center justify-between">
                     <button onClick={toggleAll} className="text-xs font-medium text-purple-600 hover:text-purple-800 flex items-center gap-1">
                         <span className={`inline-flex items-center justify-center w-4 h-4 rounded border ${isAllSelected ? 'bg-purple-600 border-purple-600 text-white' : 'border-gray-300 bg-white'}`}>
-                            {isAllSelected && <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>}
+                            {isAllSelected && <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M20 6L9 17l-5-5"/></svg>}
                         </span>
                         {isAllSelected ? '全选' : `已选 ${selectedChapters.length}/${allChapters.length}`}
                     </button>
@@ -309,7 +349,7 @@ const App = () => {
                             <button key={i} onClick={() => toggleChapter(cs.name)} className={`sidebar-item w-full text-left px-3 py-2 rounded-lg text-sm mb-1 ${isChecked ? 'active' : 'text-gray-600'}`}>
                                 <div className="flex items-center gap-2">
                                     <span className={`inline-flex items-center justify-center w-4 h-4 rounded border flex-shrink-0 ${isChecked ? 'bg-purple-600 border-purple-600 text-white' : 'border-gray-300 bg-white'}`}>
-                                        {isChecked && <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>}
+                                        {isChecked && <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M20 6L9 17l-5-5"/></svg>}
                                     </span>
                                     <span className="truncate">{cs.name}</span>
                                     <span className="text-xs text-gray-400 ml-auto">{cs.total}词</span>
@@ -321,41 +361,39 @@ const App = () => {
                 </div>
             </div>
 
-            
+            {/* Main content */}
             <div className="flex-1 flex flex-col min-w-0 relative">
-    
-
-                <header className="p-4 pb-2 bg-white border-b border-gray-100">
+                <header className="p-3 sm:p-4 pb-2 bg-white border-b border-gray-100">
                     <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-2">
                             <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg>
                             </button>
-                            <h1 className="text-lg font-bold text-gray-800">
+                            <h1 className="header-title text-sm sm:text-lg font-bold text-gray-800 truncate">
                                 {isAllSelected ? 'N1真题词汇特训' : `已选 ${selectedChapters.length} 章`}
                             </h1>
                         </div>
-                        <div className="flex items-center gap-2">
-                            <a href="../" className="text-sm font-medium text-gray-500 hover:text-purple-600 flex items-center gap-1 px-2 py-1.5 rounded-lg hover:bg-gray-100 transition-colors shrink-0" title="返回主页">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
-                                <span class="hidden sm:inline">返回主页</span>
+                        <div className="flex items-center gap-1 sm:gap-2">
+                            <a href="../" className="p-1.5 sm:px-2 sm:py-1.5 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-purple-600 transition-colors shrink-0" title="返回主页">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
                             </a>
                             <div className="relative">
                                 <button onClick={() => { setSearchOpen(!searchOpen); setTimeout(() => searchInputRef.current?.focus(), 100); }} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
                                 </button>
-                                {searchOpen && <input ref={searchInputRef} type="text" value={searchQuery} onChange={e => { setSearchQuery(e.target.value); setCurrentIndex(0); setIsFlipped(false); }} placeholder="搜索词汇/含义..." className="absolute right-0 top-8 w-56 px-3 py-1.5 text-sm border border-gray-200 rounded-lg shadow-lg bg-white focus:outline-none focus:ring-2 focus:ring-purple-300 fade-in" />}
+                                {searchOpen && <input ref={searchInputRef} type="text" value={searchQuery} onChange={e => { setSearchQuery(e.target.value); setCurrentIndex(0); setIsFlipped(false); }} placeholder="搜索..." className="absolute right-0 top-8 w-40 sm:w-56 px-3 py-1.5 text-sm border border-gray-200 rounded-lg shadow-lg bg-white focus:outline-none focus:ring-2 focus:ring-purple-300 fade-in z-50" />}
                             </div>
-                            <div className="flex items-center gap-2">
-                                <div className="flex bg-gray-50 rounded-lg p-0.5 border border-gray-200">
-                                    <button onClick={() => { setFilterMode('learning'); setCurrentIndex(0); setIsFlipped(false); }} className={`px-2 py-1 text-xs font-medium rounded ${filterMode === 'learning' ? 'bg-white text-purple-600 shadow-sm' : 'text-gray-400'}`}>仅生疏</button>
-                                    <button onClick={() => { setFilterMode('all'); setCurrentIndex(0); setIsFlipped(false); }} className={`px-2 py-1 text-xs font-medium rounded ${filterMode === 'all' ? 'bg-white text-purple-600 shadow-sm' : 'text-gray-400'}`}>全部</button>
+                            {/* 筛选按钮 - 手机端横向滚动 */}
+                            <div className="flex items-center gap-1 overflow-x-auto no-scrollbar">
+                                <div className="flex bg-gray-50 rounded-lg p-0.5 border border-gray-200 shrink-0">
+                                    <button onClick={() => { setFilterMode('learning'); setCurrentIndex(0); setIsFlipped(false); }} className={`header-btn px-1.5 sm:px-2 py-1 text-[0.6rem] sm:text-xs font-medium rounded ${filterMode === 'learning' ? 'bg-white text-purple-600 shadow-sm' : 'text-gray-400'}`}>仅生疏</button>
+                                    <button onClick={() => { setFilterMode('all'); setCurrentIndex(0); setIsFlipped(false); }} className={`header-btn px-1.5 sm:px-2 py-1 text-[0.6rem] sm:text-xs font-medium rounded ${filterMode === 'all' ? 'bg-white text-purple-600 shadow-sm' : 'text-gray-400'}`}>全部</button>
                                 </div>
-                                <div className="flex bg-gray-50 rounded-lg p-0.5 border border-gray-200">
-                                    <button onClick={() => { setFlipMode('kanji_meaning'); setCurrentIndex(0); setIsFlipped(false); }} className={`px-2 py-1 text-xs font-medium rounded ${flipMode === 'kanji_meaning' ? 'bg-white text-purple-600 shadow-sm' : 'text-gray-400'}`}>日→中</button>
-                                    <button onClick={() => { setFlipMode('meaning_kanji'); setCurrentIndex(0); setIsFlipped(false); }} className={`px-2 py-1 text-xs font-medium rounded ${flipMode === 'meaning_kanji' ? 'bg-white text-purple-600 shadow-sm' : 'text-gray-400'}`}>中→日</button>
-                                    <button onClick={() => { setFlipMode('reading_meaning'); setCurrentIndex(0); setIsFlipped(false); }} className={`px-2 py-1 text-xs font-medium rounded ${flipMode === 'reading_meaning' ? 'bg-white text-purple-600 shadow-sm' : 'text-gray-400'}`}>音→义</button>
-                                    <button onClick={() => { setFlipMode('random'); setCurrentIndex(0); setIsFlipped(false); }} className={`px-2 py-1 text-xs font-medium rounded ${flipMode === 'random' ? 'bg-white text-purple-600 shadow-sm' : 'text-gray-400'}`}>🎲</button>
+                                <div className="flex bg-gray-50 rounded-lg p-0.5 border border-gray-200 shrink-0">
+                                    <button onClick={() => { setFlipMode('kanji_meaning'); setCurrentIndex(0); setIsFlipped(false); }} className={`header-btn px-1.5 sm:px-2 py-1 text-[0.6rem] sm:text-xs font-medium rounded ${flipMode === 'kanji_meaning' ? 'bg-white text-purple-600 shadow-sm' : 'text-gray-400'}`}>日→中</button>
+                                    <button onClick={() => { setFlipMode('meaning_kanji'); setCurrentIndex(0); setIsFlipped(false); }} className={`header-btn px-1.5 sm:px-2 py-1 text-[0.6rem] sm:text-xs font-medium rounded ${flipMode === 'meaning_kanji' ? 'bg-white text-purple-600 shadow-sm' : 'text-gray-400'}`}>中→日</button>
+                                    <button onClick={() => { setFlipMode('reading_meaning'); setCurrentIndex(0); setIsFlipped(false); }} className={`header-btn px-1.5 sm:px-2 py-1 text-[0.6rem] sm:text-xs font-medium rounded ${flipMode === 'reading_meaning' ? 'bg-white text-purple-600 shadow-sm' : 'text-gray-400'}`}>音→义</button>
+                                    <button onClick={() => { setFlipMode('random'); setCurrentIndex(0); setIsFlipped(false); }} className={`header-btn px-1.5 sm:px-2 py-1 text-[0.6rem] sm:text-xs font-medium rounded ${flipMode === 'random' ? 'bg-white text-purple-600 shadow-sm' : 'text-gray-400'}`}>🎲</button>
                                 </div>
                             </div>
                         </div>
@@ -366,98 +404,92 @@ const App = () => {
                     </div>
                 </header>
 
-                <div className="flex-1 flex flex-col items-center justify-center p-4 overflow-hidden">
+                <div className="flex-1 flex flex-col items-center justify-center p-3 sm:p-4 overflow-hidden">
                     {selectedChapters.length === 0 ? (
-                        <div className="w-full max-w-lg bg-white rounded-3xl p-8 text-center shadow-sm border border-gray-100 flex flex-col items-center justify-center">
-                            <div className="w-20 h-20 bg-purple-50 rounded-full flex items-center justify-center mb-4"><svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" className="text-purple-500"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></div>
-                            <h2 className="text-2xl font-bold text-gray-800 mb-2">请先选择章节</h2>
-                            <p className="text-gray-500 mb-6 text-sm">点击左侧菜单栏勾选要学习的真题章节</p>
-                            <div className="flex gap-2 w-full">
-                                <button onClick={() => { setSelectedChapters([...allChapters]); saveSelectedChapters([...allChapters]); setCurrentIndex(0); setIsFlipped(false); }} className="flex-1 bg-purple-600 text-white py-3 rounded-2xl font-bold active:scale-95 transition-transform">选择全部 {allChapters.length} 章</button>
-                            </div>
+                        <div className="w-full max-w-lg bg-white rounded-3xl p-6 sm:p-8 text-center shadow-sm border border-gray-100 flex flex-col items-center justify-center">
+                            <div className="w-16 h-16 sm:w-20 sm:h-20 bg-purple-50 rounded-full flex items-center justify-center mb-4"><svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-purple-500"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></div>
+                            <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-2">请先选择章节</h2>
+                            <p className="text-gray-500 mb-6 text-sm">点击左侧菜单勾选要学习的章节</p>
+                            <button onClick={() => { setSelectedChapters([...allChapters]); saveSelectedChapters([...allChapters]); setCurrentIndex(0); setIsFlipped(false); }} className="w-full sm:flex-1 bg-purple-600 text-white py-3 rounded-2xl font-bold active:scale-95 transition-transform">选择全部 {allChapters.length} 章</button>
                         </div>
                     ) : filteredCards.length > 0 && currentCard ? (
                         <>
                             <div className="w-full max-w-lg flex justify-between items-center mb-3 px-1">
-                                <span className="text-xs text-gray-400">{currentCard.chapter} · No.{currentCard.num} ({currentIndex + 1}/{filteredCards.length})</span>
-                                <button onClick={shuffleCards} className="text-gray-400 hover:text-purple-500 p-1"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><path d="M7.5 4.21 12 6.81l4.5-2.6"/><path d="M21 16v2a2 2 0 0 1-1 1.73l-7 4a2 2 0 0 1-2 0l-7-4A2 2 0 0 1 3 18v-2"/></svg></button>
+                                <span className="text-xs text-gray-400 truncate">{currentCard.chapter} · No.{currentCard.num} ({currentIndex + 1}/{filteredCards.length})</span>
+                                <button onClick={shuffleCards} className="text-gray-400 hover:text-purple-500 p-1 shrink-0"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><path d="M7.5 4.21 12 6.81l4.5-2.6"/><path d="M21 16v2a2 2 0 0 1-1 1.73l-7 4a2 2 0 0 1-2 0l-7-4A2 2 0 0 1 3 18v-2"/></svg></button>
                             </div>
 
-                            <div className="w-full max-w-lg aspect-[3/4] max-h-[28rem] perspective-1000 mb-6 cursor-pointer" onClick={handleFlip}>
+                            <div className="w-full max-w-lg aspect-[3/4] card-container perspective-1000 mb-4 sm:mb-6 cursor-pointer" onClick={handleFlip}>
                                 <div className={`relative w-full h-full card-transition transform-style-3d ${isFlipped ? 'rotate-y-180' : ''}`}>
-                                    <div className={`absolute w-full h-full backface-hidden bg-white rounded-3xl shadow-lg border-2 flex flex-col items-center justify-center p-8 text-center ${isCurrentMastered ? 'border-green-400' : 'border-transparent'}`}>
-                                        {isCurrentMastered && <div className="absolute top-4 right-4 bg-green-50 text-green-500 px-2 py-1 rounded-full text-xs font-bold flex items-center"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" className="mr-1"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> 已掌握</div>}
-                                        <span className="text-xs font-bold text-gray-300 uppercase mb-4 tracking-widest">{cardFront.label}</span>
-                                        <h2 className="text-4xl font-bold text-gray-800 leading-snug mb-3">{cardFront.content}</h2>
-                                        {cardFront.sub && <p className="text-xl text-purple-500 font-medium">{cardFront.sub}</p>}
-                                        <div className="absolute bottom-5 text-xs text-purple-400 bg-purple-50 px-4 py-2 rounded-full animate-pulse flex items-center"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" className="mr-1"><path d="M7 8l5 13L7 8z"/><path d="M17 8l-5 13L17 8z"/><path d="M12 3v18"/></svg> {cardFront.hint}</div>
+                                    <div className={`absolute w-full h-full backface-hidden bg-white rounded-3xl shadow-lg border-2 flex flex-col items-center justify-center p-6 sm:p-8 text-center ${isCurrentMastered ? 'border-green-400' : 'border-transparent'}`}>
+                                        {isCurrentMastered && <div className="absolute top-3 right-3 sm:top-4 sm:right-4 bg-green-50 text-green-500 px-2 py-1 rounded-full text-xs font-bold flex items-center"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> 已掌握</div>}
+                                        <span className="card-label text-[0.65rem] sm:text-xs font-bold text-gray-300 uppercase mb-3 sm:mb-4 tracking-widest">{cardFront.label}</span>
+                                        <h2 className="card-word text-3xl sm:text-4xl font-bold text-gray-800 leading-snug mb-3">{cardFront.content}</h2>
+                                        {cardFront.sub && <p className="card-reading text-lg sm:text-xl text-purple-500 font-medium">{cardFront.sub}</p>}
+                                        <div className="card-hint absolute bottom-4 sm:bottom-5 text-[0.6rem] sm:text-xs text-purple-400 bg-purple-50 px-3 py-1.5 sm:px-4 sm:py-2 rounded-full animate-pulse flex items-center"><svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1"><path d="M7 8l5 13L7 8z"/><path d="M17 8l-5 13L17 8z"/><path d="M12 3v18"/></svg> {cardFront.hint}</div>
                                     </div>
 
-                                    <div className="absolute w-full h-full backface-hidden rotate-y-180 bg-gradient-to-br from-purple-900 to-indigo-900 rounded-3xl shadow-lg border border-purple-700 flex flex-col p-6 text-center text-white overflow-y-auto no-scrollbar">
+                                    <div className="absolute w-full h-full backface-hidden rotate-y-180 bg-gradient-to-br from-purple-900 to-indigo-900 rounded-3xl shadow-lg border border-purple-700 flex flex-col p-4 sm:p-6 text-center text-white overflow-y-auto no-scrollbar">
                                         <div className="w-full mt-auto mb-auto">
                                             {cardBack.word && (
-                                                <div className="mb-3">
-                                                    <span className="text-xs font-bold text-purple-300/70 uppercase mb-1 block tracking-widest">日文</span>
-                                                    <div className="flex items-center justify-center gap-3">
-                                                        <h2 className="text-3xl font-bold text-purple-50">{cardBack.word}</h2>
-                                                        {cardBack.reading && <span className="text-xl text-purple-300">{cardBack.reading}</span>}
+                                                <div className="mb-2 sm:mb-3">
+                                                    <span className="text-[0.6rem] sm:text-xs font-bold text-purple-300/70 uppercase mb-1 block tracking-widest">日文</span>
+                                                    <div className="flex items-center justify-center gap-2 sm:gap-3">
+                                                        <h2 className="text-2xl sm:text-3xl font-bold text-purple-50">{cardBack.word}</h2>
+                                                        {cardBack.reading && <span className="text-lg sm:text-xl text-purple-300">{cardBack.reading}</span>}
                                                     </div>
                                                 </div>
                                             )}
                                             {cardBack.meaning && (
-                                                <div className="mb-4">
-                                                    <span className="text-xs font-bold text-purple-300/70 uppercase mb-1 block tracking-widest">中文含义</span>
-                                                    <h2 className="text-2xl font-bold leading-relaxed text-purple-50">{cardBack.meaning}</h2>
+                                                <div className="mb-2 sm:mb-4">
+                                                    <span className="text-[0.6rem] sm:text-xs font-bold text-purple-300/70 uppercase mb-1 block tracking-widest">中文含义</span>
+                                                    <h2 className="text-xl sm:text-2xl font-bold leading-relaxed text-purple-50">{cardBack.meaning}</h2>
                                                 </div>
                                             )}
                                             {cardBack.extra && (
-                                                <div className="mb-4 bg-white/10 p-4 rounded-2xl backdrop-blur-sm border border-white/10">
-                                                    <span className="text-xs font-bold text-purple-300/70 uppercase mb-2 block tracking-widest">完整释义</span>
-                                                    <p className="text-lg leading-relaxed text-purple-100">{cardBack.extra}</p>
+                                                <div className="mb-2 sm:mb-4 bg-white/10 p-3 sm:p-4 rounded-2xl backdrop-blur-sm border border-white/10">
+                                                    <span className="text-[0.6rem] sm:text-xs font-bold text-purple-300/70 uppercase mb-2 block tracking-widest">完整释义</span>
+                                                    <p className="text-base sm:text-lg leading-relaxed text-purple-100">{cardBack.extra}</p>
                                                 </div>
                                             )}
-                                            <div className="text-left bg-white/10 p-4 rounded-2xl backdrop-blur-sm border border-white/10">
-                                                {currentCard.examples.length > 0 && <div className="mb-4 pb-3 border-b border-purple-300/20"><div className="flex items-center text-purple-200 text-xs font-bold mb-2"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" className="mr-1.5 text-blue-300"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> 【例句】</div>{currentCard.examples.map((ex, i) => <p key={i} className="text-[1.05rem] font-medium text-blue-100 tracking-wide leading-relaxed mb-2">{ex}</p>)}</div>}
-                                                {currentCard.collocations.length > 0 && <div><div className="flex items-center text-purple-200 text-xs font-bold mb-2"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" className="mr-1.5 text-pink-300"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg> 【搭配/用法】</div>{currentCard.collocations.map((col, i) => <p key={i} className="text-[0.95rem] font-medium text-pink-100 tracking-wide leading-relaxed">{col}</p>)}</div>}
+                                            <div className="text-left bg-white/10 p-3 sm:p-4 rounded-2xl backdrop-blur-sm border border-white/10">
+                                                {currentCard.examples.length > 0 && <div className="mb-3 sm:mb-4 pb-2 sm:pb-3 border-b border-purple-300/20"><div className="flex items-center text-purple-200 text-[0.65rem] sm:text-xs font-bold mb-2"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1.5 text-blue-300"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> 【例句】</div>{currentCard.examples.map((ex, i) => <p key={i} className="text-sm sm:text-[1.05rem] font-medium text-blue-100 tracking-wide leading-relaxed mb-1.5 sm:mb-2">{ex}</p>)}</div>}
+                                                {currentCard.collocations.length > 0 && <div><div className="flex items-center text-purple-200 text-[0.65rem] sm:text-xs font-bold mb-2"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1.5 text-pink-300"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg> 【搭配】</div>{currentCard.collocations.map((col, i) => <p key={i} className="text-sm sm:text-[0.95rem] font-medium text-pink-100 tracking-wide leading-relaxed">{col}</p>)}</div>}
                                             </div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="w-full max-w-lg flex flex-col gap-3">
-                                <div className="flex gap-3 h-14">
-                                    <button onClick={goNext} className="flex-1 bg-purple-600 text-white rounded-2xl font-bold text-lg flex items-center justify-center shadow-md shadow-purple-600/20 active:scale-95 transition-transform">下一个 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" className="ml-1"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></button>
-                                    <button onClick={toggleMasterStatus} className={`flex-1 rounded-2xl font-bold flex items-center justify-center shadow-sm active:scale-95 transition-transform border-2 ${isCurrentMastered ? 'bg-white border-gray-200 text-gray-400' : 'bg-green-50 border-green-100 text-green-600'}`}>{isCurrentMastered ? '标为生疏' : '已掌握'}</button>
+                            <div className="w-full max-w-lg flex flex-col gap-2 sm:gap-3">
+                                <div className="flex gap-2 sm:gap-3">
+                                    <button onClick={goNext} className="btn-next flex-1 bg-purple-600 text-white rounded-2xl font-bold text-base sm:text-lg flex items-center justify-center shadow-md shadow-purple-600/20 active:scale-95 transition-transform">下一个 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="ml-1"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></button>
+                                    <button onClick={toggleMasterStatus} className={`btn-master flex-1 rounded-2xl font-bold text-sm sm:text-base flex items-center justify-center shadow-sm active:scale-95 transition-transform border-2 ${isCurrentMastered ? 'bg-white border-gray-200 text-gray-400' : 'bg-green-50 border-green-100 text-green-600'}`}>{isCurrentMastered ? '标为生疏' : '已掌握'}</button>
                                 </div>
-                                <div className="flex justify-between items-center px-2">
-                                    <button onClick={goPrev} disabled={currentIndex === 0} className={`flex items-center text-sm font-medium py-2 px-4 rounded-full ${currentIndex === 0 ? 'text-gray-300 cursor-not-allowed' : 'text-gray-500 hover:bg-gray-100'}`}><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" className="mr-1"><path d="m15 18-6-6 6-6"/></svg> 上一个</button>
+                                <div className="flex justify-between items-center px-1 sm:px-2">
+                                    <button onClick={goPrev} disabled={currentIndex === 0} className={`flex items-center text-xs sm:text-sm font-medium py-2 px-3 sm:px-4 rounded-full ${currentIndex === 0 ? 'text-gray-300 cursor-not-allowed' : 'text-gray-500 hover:bg-gray-100'}`}><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1"><path d="m15 18-6-6 6-6"/></svg> 上一个</button>
                                     <button onClick={resetProgress} className="text-xs text-gray-300 hover:text-red-400 py-2 transition-colors">清空进度</button>
                                 </div>
                             </div>
                         </>
                     ) : masteredInFilter === totalInFilter && totalInFilter > 0 ? (
-                        <div className="w-full max-w-lg bg-white rounded-3xl p-8 text-center shadow-sm border border-gray-100 flex flex-col items-center justify-center">
-                            <div className="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center mb-4"><svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" className="text-green-500"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div>
-                            <h2 className="text-2xl font-bold text-gray-800 mb-2">太棒了！</h2>
+                        <div className="w-full max-w-lg bg-white rounded-3xl p-6 sm:p-8 text-center shadow-sm border border-gray-100 flex flex-col items-center justify-center">
+                            <div className="w-16 h-16 sm:w-20 sm:h-20 bg-green-50 rounded-full flex items-center justify-center mb-4"><svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-green-500"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div>
+                            <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-2">太棒了！</h2>
                             <p className="text-gray-500 mb-6 text-sm">已选章节的 {totalInFilter} 个词汇全部掌握</p>
-                            <div className="flex gap-2 w-full">
-                                <button onClick={() => { setFilterMode('all'); setCurrentIndex(0); setIsFlipped(false); }} className="flex-1 bg-gray-100 text-gray-600 py-3 rounded-2xl font-bold active:scale-95 transition-transform">重新复习</button>
-                            </div>
+                            <button onClick={() => { setFilterMode('all'); setCurrentIndex(0); setIsFlipped(false); }} className="w-full bg-gray-100 text-gray-600 py-3 rounded-2xl font-bold active:scale-95 transition-transform">重新复习</button>
                         </div>
                     ) : (
-                        <div className="w-full max-w-lg bg-white rounded-3xl p-8 text-center shadow-sm border border-gray-100 flex flex-col items-center justify-center">
-                            <div className="w-20 h-20 bg-amber-50 rounded-full flex items-center justify-center mb-4"><svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" className="text-amber-500"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg></div>
-                            <h2 className="text-2xl font-bold text-gray-800 mb-2">没有匹配的词汇</h2>
-                            <p className="text-gray-500 mb-6 text-sm">当前筛选条件下没有找到词汇，试试调整筛选条件</p>
-                            <div className="flex gap-2 w-full">
-                                <button onClick={() => { setFilterMode('all'); setSearchQuery(''); setCurrentIndex(0); setIsFlipped(false); }} className="flex-1 bg-purple-600 text-white py-3 rounded-2xl font-bold active:scale-95 transition-transform">重置筛选</button>
-                            </div>
+                        <div className="w-full max-w-lg bg-white rounded-3xl p-6 sm:p-8 text-center shadow-sm border border-gray-100 flex flex-col items-center justify-center">
+                            <div className="w-16 h-16 sm:w-20 sm:h-20 bg-amber-50 rounded-full flex items-center justify-center mb-4"><svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-amber-500"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg></div>
+                            <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-2">没有匹配的词汇</h2>
+                            <p className="text-gray-500 mb-6 text-sm">当前筛选条件下没有找到词汇</p>
+                            <button onClick={() => { setFilterMode('all'); setSearchQuery(''); setCurrentIndex(0); setIsFlipped(false); }} className="w-full bg-purple-600 text-white py-3 rounded-2xl font-bold active:scale-95 transition-transform">重置筛选</button>
                         </div>
                     )}
                 </div>
 
-                <div className="px-4 py-2 text-center text-xs text-gray-300 border-t border-gray-100">← → 切换 · 空格 翻转 · M 标记掌握</div>
+                <div className="px-4 py-2 text-center text-xs text-gray-300 border-t border-gray-100 hidden sm:block">← → 切换 · 空格 翻转 · M 标记掌握</div>
             </div>
         </div>
     );
