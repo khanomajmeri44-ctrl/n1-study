@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>N1真题词汇翻翻卡</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="vocab.js"></script>
+    <style>
+        .perspective-1000{perspective:1000px}.transform-style-3d{transform-style:preserve-3d}.backface-hidden{backface-visibility:hidden}.rotate-y-180{transform:rotateY(180deg)}.card-transition{transition:transform 0.5s cubic-bezier(0.4,0.2,0.2,1)}
+        body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background-color:#f8fafc;overscroll-behavior-y:none;}
+        .no-scrollbar::-webkit-scrollbar{display:none}.no-scrollbar{-ms-overflow-style:none;scrollbar-width:none;}
+        ruby{ruby-align:center}rt{font-size:0.55em;color:#bfdbfe;transform:translateY(-2px)}
+        .checkbox-scroll::-webkit-scrollbar{width:3px}.checkbox-scroll::-webkit-scrollbar-thumb{background:#e5e7eb;border-radius:9px}
+    </style>
+</head>
+<body class="text-gray-800 h-screen overflow-hidden flex flex-col selection:bg-rose-200">
+    <div id="root" class="h-full flex flex-col"></div>
+    <script type="text/babel">
+        const { useState, useEffect, useCallback, useMemo } = React;
+        const STORAGE_KEY = 'n1_vocab_progress';
+
+        const vocabData = window.vocabData || [];
+        const chapterList = [...new Set(vocabData.map(w => w.chapter))].sort();
+
+        const ChapterSelector = ({ selectedChapters, onToggle }) => {
+            const [expanded, setExpanded] = useState(false);
+
+            const allSelected = selectedChapters.length === chapterList.length;
+            const selectedCount = selectedChapters.length;
+
+            const toggleAll = () => {
+                if (allSelected) {
+                    onToggle([]);
+                } else {
+                    onToggle([...chapterList]);
+                }
+            };
+
+            return (
+                <div className="w-full">
+                    <div className="flex gap-2 items-center mb-2">
+                        <button onClick={toggleAll}
+                            className={`flex-1 text-xs font-bold px-3 py-2 rounded-lg border transition-colors ${allSelected ? 'bg-rose-50 border-rose-200 text-rose-600' : 'bg-white border-gray-200 text-gray-500'}`}>
+                            {allSelected ? '✅ 已选全部' : '☐ 全选'}
+                        </button>
+                        <button onClick={() => setExpanded(!expanded)}
+                            className="flex-1 text-xs font-bold px-3 py-2 rounded-lg bg-white border border-gray-200 text-gray-500 transition-colors flex items-center justify-center">
+                            {selectedCount} 章已选 {expanded ? '▲' : '▼'}
+                        </button>
+                    </div>
+                    {expanded && (
+                        <div className="bg-white border border-gray-200 rounded-lg p-2 max-h-40 overflow-y-auto checkbox-scroll shadow-inner">
+                            <div className="grid grid-cols-2 gap-1">
+                                {chapterList.map(ch => {
+                                    const count = vocabData.filter(c => c.chapter === ch).length;
+                                    const checked = selectedChapters.includes(ch);
+                                    return (
+                                        <label key={ch}
+                                            className={`flex items-center gap-1.5 px-2 py-1.5 rounded-md cursor-pointer transition-colors text-xs ${checked ? 'bg-rose-50' : 'hover:bg-gray-50'}`}>
+                                            <input type="checkbox" checked={checked}
+                                                onChange={() => {
+                                                    if (checked) onToggle(selectedChapters.filter(c => c !== ch));
+                                                    else onToggle([...selectedChapters, ch]);
+                                                }}
+                                                className="accent-rose-500 w-3.5 h-3.5 flex-shrink-0" />
+                                            <span className="truncate flex-1">{ch}</span>
+                                            <span className="text-gray-400 flex-shrink-0">{count}</span>
+                                        </label>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        const App = () => {
+            const [selectedChapters, setSelectedChapters] = useState(() => [...chapterList]);
+            const [cards] = useState(vocabData);
+            const [currentIndex, setCurrentIndex] = useState(0);
+            const [isFlipped, setIsFlipped] = useState(false);
+            const [masteredIds, setMasteredIds] = useState(() => {
+                try {
+                    const saved = localStorage.getItem(STORAGE_KEY);
+                    return saved ? new Set(JSON.parse(saved)) : new Set();
+                } catch { return new Set(); }
+            });
+            const [filterMode, setFilterMode] = useState('all');
+
+            useEffect(() => {
+                try {
+                    localStorage.setItem(STORAGE_KEY, JSON.stringify(Array.from(masteredIds)));
+                } catch(e) {}
+            }, [masteredIds]);
+
+            const filteredByChapter = useMemo(() => {
+                if (selectedChapters.length === 0) return [];
+                return cards.filter(c => selectedChapters.includes(c.chapter));
+            }, [cards, selectedChapters]);
+
+            const displayedCards = useMemo(() => {
+                if (filterMode === 'all') return filteredByChapter;
+                return filteredByChapter.filter(c => !masteredIds.has(c.id));
+            }, [filteredByChapter, filterMode, masteredIds]);
+
+            useEffect(() => {
+                if (currentIndex >= displayedCards.length && displayedCards.length > 0) {
+                    setCurrentIndex(Math.max(0, displayedCards.length - 1));
+                    setIsFlipped(false);
+                }
+                if (currentIndex < 0) {
+                    setCurrentIndex(0);
+                    setIsFlipped(false);
+                }
+            }, [displayedCards.length, currentIndex, selectedChapters]);
+
+            const handleFlip = useCallback(() => setIsFlipped(prev => !prev), []);
+
+            const toggleMasterStatus = useCallback((e) => {
+                if (e) e.stopPropagation();
+                if (displayedCards.length === 0) return;
+                const currentId = displayedCards[currentIndex].id;
+                setMasteredIds(prev => {
+                    const newSet = new Set(prev);
+                    if (newSet.has(currentId)) newSet.delete(currentId);
+                    else newSet.add(currentId);
+                    return newSet;
+                });
+            }, [currentIndex, displayedCards]);
+
+            const handlePrev = useCallback((e) => {
+                if (e) e.stopPropagation();
+                if (currentIndex > 0) {
+                    setIsFlipped(false);
+                    setTimeout(() => setCurrentIndex(prev => prev - 1), 150);
+                }
+            }, [currentIndex]);
+
+            const handleNext = useCallback((e) => {
+                if (e) e.stopPropagation();
+                if (currentIndex < displayedCards.length - 1) {
+                    setIsFlipped(false);
+                    setTimeout(() => setCurrentIndex(prev => prev + 1), 150);
+                }
+            }, [currentIndex, displayedCards.length]);
+
+            const shuffleCards = useCallback(() => {
+                const shuffled = [...filteredByChapter].sort(() => Math.random() - 0.5);
+                setCurrentIndex(0);
+                setIsFlipped(false);
+            }, [filteredByChapter]);
+
+            const resetProgress = useCallback(() => {
+                if (window.confirm("确定要清空所有已掌握记录，从头开始吗？")) {
+                    setMasteredIds(new Set());
+                    setFilterMode('all');
+                    setSelectedChapters([...chapterList]);
+                    setCurrentIndex(0);
+                    setIsFlipped(false);
+                }
+            }, []);
+
+            useEffect(() => {
+                const handleKeyDown = (e) => {
+                    if (displayedCards.length === 0) return;
+                    if (e.code === 'Space') { e.preventDefault(); handleFlip(); }
+                    else if (e.code === 'ArrowLeft') handlePrev();
+                    else if (e.code === 'ArrowRight') handleNext();
+                    else if (e.code === 'KeyM') toggleMasterStatus();
+                };
+                window.addEventListener('keydown', handleKeyDown);
+                return () => window.removeEventListener('keydown', handleKeyDown);
+            }, [handlePrev, handleNext, handleFlip, toggleMasterStatus, displayedCards.length]);
+
+            useEffect(() => { if (window.lucide) lucide.createIcons(); });
+
+            const currentCard = displayedCards[currentIndex];
+            if (!currentCard && displayedCards.length > 0) return null;
+            const isCurrentMastered = currentCard ? masteredIds.has(currentCard.id) : false;
+            const masteredCount = cards.filter(c => masteredIds.has(c.id)).length;
+            const progressPercent = Math.round((masteredCount / cards.length) * 100);
+
+            return (
+                <div className="flex-1 flex flex-col items-center p-4 max-w-lg mx-auto w-full h-full safe-area-inset">
+                    {/* 返回主页 */}
+                    <a href="/" className="w-full flex items-center text-gray-400 hover:text-gray-600 mb-2 transition-colors">
+                        <i data-lucide="arrow-left" className="w-4 h-4 mr-1"></i>
+                        <span className="text-xs font-medium">返回主页</span>
+                    </a>
+
+                    <header className="w-full mb-4">
+                        <div className="flex justify-between items-center mb-2">
+                            <h1 className="text-xl font-bold text-gray-800 flex items-center">
+                                <i data-lucide="book-open" className="w-5 h-5 mr-1 text-rose-600"></i>
+                                N1真题词汇 ({cards.length})
+                            </h1>
+                            <div className="flex bg-white rounded-lg p-1 border border-gray-200 shadow-sm">
+                                <button onClick={() => { setFilterMode('learning'); setCurrentIndex(0); setIsFlipped(false); }} className={`px-3 py-1 text-xs font-bold rounded ${filterMode === 'learning' ? 'bg-rose-50 text-rose-600' : 'text-gray-400'}`}>仅生疏</button>
+                                <button onClick={() => { setFilterMode('all'); setCurrentIndex(0); setIsFlipped(false); }} className={`px-3 py-1 text-xs font-bold rounded ${filterMode === 'all' ? 'bg-rose-50 text-rose-600' : 'text-gray-400'}`}>全部</button>
+                            </div>
+                        </div>
+                        <div className="flex justify-between items-center mb-1">
+                            <span className="text-xs text-gray-400">已掌握 {masteredCount}/{cards.length}</span>
+                            <span className="text-xs text-gray-400">{progressPercent}%</span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-1.5">
+                            <div className="bg-rose-500 h-1.5 rounded-full transition-all" style={{ width: `${progressPercent}%` }}></div>
+                        </div>
+
+                        {/* 章节多选 */}
+                        <div className="mt-2">
+                            <ChapterSelector selectedChapters={selectedChapters} onToggle={(chs) => { setSelectedChapters(chs); setCurrentIndex(0); setIsFlipped(false); }} />
+                        </div>
+                    </header>
+
+                    {displayedCards.length > 0 ? (
+                        <>
+                            <div className="w-full flex justify-between px-1 mb-2 items-center">
+                                <span className="text-xs font-medium text-gray-400">
+                                    ({currentIndex + 1} / {displayedCards.length})
+                                </span>
+                                <button onClick={shuffleCards} className="text-gray-400 hover:text-rose-500 p-1">
+                                    <i data-lucide="shuffle" className="w-4 h-4"></i>
+                                </button>
+                            </div>
+
+                            <div className="w-full flex-1 min-h-[22rem] max-h-[30rem] perspective-1000 mb-6 cursor-pointer" onClick={handleFlip}>
+                                <div className={`relative w-full h-full card-transition transform-style-3d ${isFlipped ? 'rotate-y-180' : ''}`}>
+                                    <div className={`absolute w-full h-full backface-hidden bg-white rounded-3xl shadow-lg border-2 flex flex-col items-center justify-center p-6 text-center ${isCurrentMastered ? 'border-green-400' : 'border-transparent'}`}>
+                                        {isCurrentMastered && (
+                                            <div className="absolute top-4 right-4 bg-green-50 text-green-500 px-2 py-1 rounded-full text-xs font-bold flex items-center">
+                                                <i data-lucide="check" className="w-3 h-3 mr-1"></i> 已掌握
+                                            </div>
+                                        )}
+                                        <span className="text-xs font-bold text-gray-300 uppercase mb-4 tracking-widest">{currentCard.chapter}</span>
+                                        <h2 className="text-5xl font-bold text-gray-800 leading-snug px-2 mb-2">{currentCard.word}</h2>
+                                        <p className="text-lg text-gray-500 mb-6">{currentCard.reading}</p>
+                                        <div className="absolute bottom-5 text-xs text-rose-400 bg-rose-50 px-4 py-2 rounded-full animate-pulse flex items-center">
+                                            <i data-lucide="mouse-pointer-click" className="w-3 h-3 mr-1"></i> 点击翻看释义与例句
+                                        </div>
+                                    </div>
+                                    <div className="absolute w-full h-full backface-hidden rotate-y-180 bg-gradient-to-br from-rose-900 to-indigo-900 rounded-3xl shadow-lg border border-rose-800 flex flex-col items-center justify-center p-6 text-center text-white overflow-y-auto no-scrollbar">
+                                        <div className="w-full mt-auto mb-auto">
+                                            <h2 className="text-3xl font-bold mb-1">{currentCard.word}</h2>
+                                            <p className="text-lg text-rose-200 mb-4">{currentCard.reading}</p>
+                                            <div className="text-left bg-white/10 p-5 rounded-2xl backdrop-blur-sm border border-white/10 shadow-inner">
+                                                <div className="flex items-center text-rose-200 text-xs font-bold mb-2">
+                                                    <i data-lucide="file-text" className="w-3.5 h-3.5 mr-1.5 text-amber-300"></i> 【释义】
+                                                </div>
+                                                <p className="text-[1.15rem] font-medium text-amber-50 leading-relaxed mb-4">{currentCard.meaning}</p>
+                                                {currentCard.example && (
+                                                    <>
+                                                        <div className="flex items-center text-rose-200 text-xs font-bold mb-2">
+                                                            <i data-lucide="bookmark" className="w-3.5 h-3.5 mr-1.5 text-blue-300"></i> 【例句】
+                                                        </div>
+                                                        <p className="text-[1.05rem] font-medium mb-2 leading-relaxed">{currentCard.example}</p>
+                                                    </>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="w-full flex flex-col gap-3 pb-4">
+                                <div className="flex gap-3 h-16">
+                                    <button onClick={handleNext} className="flex-1 bg-rose-600 text-white rounded-2xl font-bold text-lg flex items-center justify-center shadow-md shadow-rose-600/20 active:scale-95 transition-transform">
+                                        下一个 <i data-lucide="arrow-right" className="w-6 h-6 ml-1"></i>
+                                    </button>
+                                    <button onClick={toggleMasterStatus} className={`flex-1 rounded-2xl font-bold flex items-center justify-center shadow-sm active:scale-95 transition-transform border-2 ${isCurrentMastered ? 'bg-white border-gray-200 text-gray-400' : 'bg-green-50 border-green-100 text-green-600'}`}>
+                                        {isCurrentMastered ? '标为生疏' : '已掌握'}
+                                    </button>
+                                </div>
+                                <div className="flex justify-between items-center px-4">
+                                    <button onClick={handlePrev} disabled={currentIndex === 0} className={`flex items-center text-sm font-medium py-2 px-4 rounded-full ${currentIndex === 0 ? 'text-gray-300 cursor-not-allowed' : 'text-gray-500 hover:bg-gray-100 active:bg-gray-200'}`}>
+                                        <i data-lucide="arrow-left" className="w-4 h-4 mr-1"></i> 上一个
+                                    </button>
+                                    <button onClick={resetProgress} className="text-xs text-gray-300 hover:text-red-400 py-2 transition-colors">清空进度</button>
+                                </div>
+                            </div>
+                        </>
+                    ) : (
+                        <div className="w-full flex-1 bg-white rounded-3xl p-8 text-center shadow-sm border border-gray-100 flex flex-col items-center justify-center mb-6">
+                            {selectedChapters.length === 0 ? (
+                                <>
+                                    <div className="w-20 h-20 bg-amber-50 rounded-full flex items-center justify-center mb-4"><i data-lucide="book-marked" className="w-10 h-10 text-amber-500"></i></div>
+                                    <h2 className="text-2xl font-bold text-gray-800 mb-2">还没选章节呢</h2>
+                                    <p className="text-gray-500 mb-8 text-sm leading-relaxed">点击上方「26 章已选」勾选想背的章节<br/>也可以点「已选全部」一次全选</p>
+                                </>
+                            ) : (
+                                <>
+                                    <div className="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center mb-4"><i data-lucide="award" className="w-10 h-10 text-green-500"></i></div>
+                                    <h2 className="text-2xl font-bold text-gray-800 mb-2">太棒了！</h2>
+                                    <p className="text-gray-500 mb-8 text-sm leading-relaxed">当前选中的词汇已全部掌握<br/>准备好迎接真正的考试了吗？</p>
+                                </>
+                            )}
+                            <button onClick={() => { setFilterMode('all'); setSelectedChapters([...chapterList]); }} className="w-full bg-rose-600 text-white py-4 rounded-2xl font-bold active:scale-95 transition-transform">重新复习全部</button>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
