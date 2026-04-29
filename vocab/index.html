@@ -216,7 +216,7 @@ const App = () => {
             case 'meaning_kanji':
                 return { label: '中文含义', content: c.chinese_meaning || c.meaning, sub: null, hint: '点击查看日文' };
             case 'reading_meaning':
-                return { label: '日文读音', content: c.reading || c.word, sub: c.word, hint: '点击查看释义' };
+                return { label: '日文读音', content: c.reading || c.word, sub: null, hint: '点击查看释义' };
             default:
                 return { label: 'N1 词汇', content: c.word, sub: c.reading || null, hint: '点击查看释义' };
         }
