@@ -5,10 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>N1真题词汇翻翻卡</title>
 <script src="https://cdn.tailwindcss.com"></script>
-<script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
-<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
-<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js?v=3" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js?v=3" crossorigin></script>
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js?v=3"></script>
 <style>
 .perspective-1000{perspective:1000px}.transform-style-3d{transform-style:preserve-3d}.backface-hidden{backface-visibility:hidden}.rotate-y-180{transform:rotateY(180deg)}.card-transition{transition:transform 0.5s cubic-bezier(0.4,0.2,0.2,1)}
 body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background-color:#f8fafc;overscroll-behavior-y:none;}
@@ -20,8 +19,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
 </head>
 <body class="text-gray-800 h-screen overflow-hidden flex selection:bg-purple-200">
 <div id="root" class="h-full w-full flex"></div>
-<script src="vocab.js"></script>
-<script type="text/babel" data-type="module">
+<script src="vocab.js?v=3"></script>
+<script type="module">
+import htm from 'https://unpkg.com/htm@3.1.1/dist/htm.module.js';
+const html = htm.bind(React.createElement);
+const Fragment = React.Fragment;
+window.html = html;
+
 const { useState, useEffect, useCallback, useMemo, useRef } = React;
 
 const STORAGE_KEY = 'n1_vocab_mastered_ids';
@@ -260,11 +264,11 @@ const App = () => {
         });
     }, [masteredIds]);
 
-    return (
+    return html`
         <div className="flex h-full w-full">
             {toast && <div className="fixed top-8 left-1/2 -translate-x-1/2 z-50 bg-gray-800 text-white px-4 py-2 rounded-full text-sm shadow-lg fade-in">{toast}</div>}
 
-            {/* Sidebar */}
+            
             <div className={`${sidebarOpen ? 'w-64' : 'w-0'} bg-white border-r border-gray-200 flex-shrink-0 transition-all duration-200 overflow-hidden flex flex-col relative`}>
                 <div className="p-4 border-b border-gray-100">
                     <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2">
@@ -274,7 +278,7 @@ const App = () => {
                     <p className="text-xs text-gray-400 mt-1">共 {VOCAB_DATA.length} 词 · {allChapters.length} 章</p>
                 </div>
 
-                {/* Select All / Deselect All */}
+                
                 <div className="px-3 py-2 border-b border-gray-100 flex items-center justify-between">
                     <button onClick={toggleAll} className="text-xs font-medium text-purple-600 hover:text-purple-800 flex items-center gap-1">
                         <span className={`inline-flex items-center justify-center w-4 h-4 rounded border ${isAllSelected ? 'bg-purple-600 border-purple-600 text-white' : 'border-gray-300 bg-white'}`}>
@@ -303,7 +307,7 @@ const App = () => {
                 </div>
             </div>
 
-            {/* Main content */}
+            
             <div className="flex-1 flex flex-col min-w-0 relative">
     
 
@@ -350,7 +354,7 @@ const App = () => {
 
                 <div className="flex-1 flex flex-col items-center justify-center p-4 overflow-hidden">
                     {filteredCards.length > 0 && currentCard ? (
-                        <>
+                        <Fragment>
                             <div className="w-full max-w-lg flex justify-between items-center mb-3 px-1">
                                 <span className="text-xs text-gray-400">{currentCard.chapter} · No.{currentCard.num} ({currentIndex + 1}/{filteredCards.length})</span>
                                 <button onClick={shuffleCards} className="text-gray-400 hover:text-purple-500 p-1"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><path d="M7.5 4.21 12 6.81l4.5-2.6"/><path d="M21 16v2a2 2 0 0 1-1 1.73l-7 4a2 2 0 0 1-2 0l-7-4A2 2 0 0 1 3 18v-2"/></svg></button>
@@ -408,7 +412,7 @@ const App = () => {
                                     <button onClick={resetProgress} className="text-xs text-gray-300 hover:text-red-400 py-2 transition-colors">清空进度</button>
                                 </div>
                             </div>
-                        </>
+                        </Fragment>
                     ) : (
                         <div className="w-full max-w-lg bg-white rounded-3xl p-8 text-center shadow-sm border border-gray-100 flex flex-col items-center justify-center">
                             <div className="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center mb-4"><svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" className="text-green-500"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></div>
@@ -425,7 +429,7 @@ const App = () => {
                 <div className="px-4 py-2 text-center text-xs text-gray-300 border-t border-gray-100">← → 切换 · 空格 翻转 · M 标记掌握</div>
             </div>
         </div>
-    );
+    `;
 };
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
